@@ -1,0 +1,118 @@
+diff --git a/src/backtest.py b/src/backtest.py
+index 8579430..2bd96f1 100644
+--- a/src/backtest.py
++++ b/src/backtest.py
+@@ -8,7 +8,7 @@ import numpy as np
+ import pandas as pd
+ 
+ from src.config import PipelineConfig
+-from src.portfolio import apply_constraints_by_date, apply_vol_target_wide, weights_to_wide
++from src.portfolio import apply_constraints_by_date, apply_vol_target_wide, compute_budgets, weights_to_wide
+ from src.position_sizing import SizingMode, compute_sizes
+ 
+ 
+@@ -95,12 +95,11 @@ def strategy_weights_from_panel(
+     else:
+         df["size"] = 1.0
+ 
++    budgets = compute_budgets(df, cfg.portfolio)
+     if "M1_conviction" in df.columns:
+-        df["raw_weight"] = (
+-            df["M1_signal"] * df["size"] * df["M1_conviction"] * cfg.portfolio.base_budget_per_asset
+-        )
++        df["raw_weight"] = df["M1_signal"] * df["size"] * df["M1_conviction"] * budgets
+     else:
+-        df["raw_weight"] = df["M1_signal"] * df["size"] * cfg.portfolio.base_budget_per_asset
++        df["raw_weight"] = df["M1_signal"] * df["size"] * budgets
+     df["weight"] = apply_constraints_by_date(df, cfg.portfolio)
+     w_wide = weights_to_wide(df.reset_index())
+     return apply_vol_target_wide(w_wide, returns_wide, cfg.portfolio)
+diff --git a/src/config.py b/src/config.py
+index c224998..23386dc 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -107,6 +107,12 @@ class PortfolioConfig:
+     transaction_cost_bps: float = 5.0
+     base_budget_per_asset: float = 1.0 / 7.0
+     sizing_mode: str = "linear"
++    # Capital weighting across selected assets: "equal" (default, baseline
++    # behavior, bit-for-bit identical) or "inverse_vol" (risk-balanced:
++    # budget proportional to 1 / trailing 26w vol among the week's picks).
++    weighting_scheme: str = "equal"
++    # Floor on annualized vol used in inverse-vol budgets (guards div-by-tiny).
++    inv_vol_floor_ann: float = 0.02
+     # Annualized vol target for gross exposure scaling (null / 0 disables).
+     vol_target_ann: float | None = None
+     vol_target_lookback_weeks: int = 26
+diff --git a/src/portfolio.py b/src/portfolio.py
+index fd2efae..cb9a791 100644
+--- a/src/portfolio.py
++++ b/src/portfolio.py
+@@ -9,6 +9,49 @@ from src.config import PortfolioConfig
+ 
+ WEEKS_PER_YEAR = 52
+ 
++INV_VOL_COLUMN = "vol_26w"  # lagged trailing vol feature (already .shift(1) in feature_engineering)
++
++
++def compute_budgets(df: pd.DataFrame, cfg: PortfolioConfig) -> pd.Series | float:
++    """Per-(date, ticker) capital budget for selected assets.
++
++    "equal" (default): every pick gets base_budget_per_asset — returns the plain
++    float so the baseline code path is bit-for-bit unchanged.
++
++    "inverse_vol" (opt-in): each week, the total deployed budget is identical to
++    the equal scheme (n_picks * base_budget_per_asset), but it is redistributed
++    across that week's picks proportionally to 1 / trailing 26-week volatility,
++    so calmer assets receive more capital and jumpier assets less (risk-balanced
++    allocation; Maillard, Roncalli & Teiletche 2010). Uses the lagged vol_26w
++    feature column, so no look-ahead is introduced. Falls back to equal shares
++    on any week where vol data is missing.
++    """
++    scheme = getattr(cfg, "weighting_scheme", "equal")
++    if scheme == "equal":
++        return cfg.base_budget_per_asset
++    if scheme != "inverse_vol":
++        raise ValueError(f"Unknown weighting_scheme: {scheme!r} (use 'equal' or 'inverse_vol')")
++    if INV_VOL_COLUMN not in df.columns:
++        raise ValueError(
++            f"weighting_scheme='inverse_vol' requires the '{INV_VOL_COLUMN}' feature column"
++        )
++
++    selected = df["M1_signal"].fillna(0) != 0
++    floor = max(float(getattr(cfg, "inv_vol_floor_ann", 0.02)), 1e-6)
++    inv_vol = 1.0 / df[INV_VOL_COLUMN].clip(lower=floor)
++    inv_vol = inv_vol.where(selected, 0.0)
++
++    grouped = inv_vol.groupby(level="date")
++    share = inv_vol / grouped.transform("sum").replace(0.0, np.nan)
++    n_picks = selected.groupby(level="date").transform("sum")
++    # Equal-share fallback for weeks where every pick lacks vol data.
++    share = share.fillna(1.0 / n_picks.replace(0, np.nan)).fillna(0.0)
++
++    budgets = share * n_picks * cfg.base_budget_per_asset
++    # Unselected rows keep the plain base budget (multiplied by signal=0 anyway).
++    budgets = budgets.where(selected, cfg.base_budget_per_asset)
++    return budgets.rename("budget")
++
+ 
+ def raw_weights(
+     signals: pd.Series,
+@@ -57,7 +100,7 @@ def build_weights_panel(
+     if conviction is not None:
+         out["M1_conviction"] = conviction.reindex(out.index).fillna(0.0)
+     conv = out["M1_conviction"] if "M1_conviction" in out.columns else None
+-    out["raw_weight"] = raw_weights(out["M1_signal"], out["size"], cfg.base_budget_per_asset, conviction=conv)
++    out["raw_weight"] = raw_weights(out["M1_signal"], out["size"], compute_budgets(out, cfg), conviction=conv)
+     out["weight"] = apply_constraints_by_date(out, cfg)
+     return out
+ 
+@@ -85,7 +128,7 @@ def build_weights_from_signals(
+     if conviction is not None:
+         df["M1_conviction"] = conviction.reindex(df.index).fillna(0.0)
+     conv = df["M1_conviction"] if "M1_conviction" in df.columns else None
+-    df["raw_weight"] = raw_weights(df["M1_signal"], df["size"], portfolio_cfg.base_budget_per_asset, conviction=conv)
++    df["raw_weight"] = raw_weights(df["M1_signal"], df["size"], compute_budgets(df, portfolio_cfg), conviction=conv)
+     df["weight"] = apply_constraints_by_date(df, portfolio_cfg)
+     return weights_to_wide(df.reset_index())
+ 
