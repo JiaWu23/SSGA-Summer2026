@@ -1,143 +1,124 @@
-# SSGA Summer 2026 — AI-Augmented Multi-Asset Meta-Labeling Pipeline
+# Multi-Asset Meta-Labeling Research Pipeline
 
-Research-grade Python pipeline for a multi-asset portfolio strategy using meta-labeling (M1 side decision + M2 probability-based sizing/risk layer + portfolio controls). **For education and research only — not investment advice.**
+A weekly, multi-asset allocation framework using a two-stage meta-labeling design.
+Research and educational use only — not investment advice.
 
-## Branch Summary
+## Overview
 
-Start here if you are reviewing this branch:
+The pipeline allocates across a seven-sleeve global asset universe and separates the
+allocation decision into two stages plus a portfolio layer:
 
-- [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — current project narrative and M1/M2 interpretation
-- [`DATA_SOURCES_AND_ETL.md`](DATA_SOURCES_AND_ETL.md) — data provenance, ETL, validation, cache behavior, and reviewer caveats
-- [`NEXT_STEPS.md`](NEXT_STEPS.md) — review notes, remaining risks, and recommended research roadmap
+- **M1 — static directional model.** A simple, linear signal that decides which
+  assets to favour. It uses only static price factors (momentum + trend), kept
+  deliberately lean.
+- **M2 — dynamic meta-label.** A logistic-regression layer that, conditioned on the
+  market regime, estimates whether an M1 view is likely to pay and sizes accordingly.
+  It receives the individual factors (momentum, trend, macro, volatility) and regime
+  features separately, so it can weight them dynamically.
+- **Portfolio.** Benchmark-relative active weights (benchmark ± bounded tilt),
+  volatility targeting, position caps, and a two-layer cost model (expense ratio +
+  transaction cost). The headline metric is the information ratio.
 
-Current headline result (**full sample: train + test, unless noted**): the **long-only M1** sleeve is now close to equal-weight return while keeping better Sharpe and much lower drawdown.
+Design principle: **static factors live in M1, dynamic factors live in M2.**
 
-| Strategy | Ann. Return | Sharpe | Max DD |
-| --- | ---: | ---: | ---: |
-| Equal Weight 1/7 | 7.36% | 0.57 | -39.44% |
-| **M1 Only, long-only** | **7.32%** | **0.70** | **-21.00%** |
-| M1 + M2 ECDF | 6.51% | 0.91 | -18.80% |
+## Asset universe
 
-The practical interpretation is: **M1 selects opportunities; M2 shapes exposure and drawdown.** M1-only is currently the return-oriented sleeve, while M1+M2 ECDF is the strongest risk-adjusted variant.
+S&P 500 · MSCI EAFE · MSCI Emerging Markets · U.S. Treasury 7–10Y · U.S. High Yield ·
+Gold · U.S. REITs. Signals are computed on index series where available; instrument
+substitution (ETFs) is used at the implementation stage. See `DATA_SOURCES.md`.
 
-Reviewer caveat: equal-weight is shown with **0 bps** transaction costs, while strategy variants pay the configured **5 bps** turnover cost. M1 also runs with lower average gross exposure (~81%) than equal-weight, so the headline comparison is best read as risk-efficiency rather than pure excess-return proof.
-
-The generated `reports/final_report.md` now also includes portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% annualized return / 0.79 Sharpe versus equal-weight at 7.34% / 0.69; M1+M2 ECDF reports 6.93% / 0.85.
-
-## Asset Universe
-
-SPY, TLT, GLD, VEA, VWO, HYG, VNQ (weekly, 7-asset global ETF basket).
-
-## Quick Start
-
-```bash
-# Install
-pip install -e ".[dev]"
-
-# Run full pipeline (downloads yfinance + FRED data)
-# Runs M1 twice: long_only (no shorts) and long_short (shorts enabled)
-python -m src.run_pipeline --config config/config.yaml
-
-# Override train/test split dates (ISO format; defaults: train through 2020, test from 2021)
-python -m src.run_pipeline --train-end 2018-12-31 --test-start 2019-01-01
-python -m src.run_pipeline --train-start 2008-01-01 --train-end 2015-12-31 --test-start 2016-01-01
-
-# Train before all 7 ETFs existed (partial universe; re-download if cache is too short)
-python -m src.run_pipeline --data-start 2004-01-01 --train-start 2005-01-01 --train-end 2006-12-31 \
-  --test-start 2007-01-01 --partial-universe --refresh-data
-
-# Run tests (synthetic fixtures, no network)
-pytest -q
-
-# Integration test (requires network)
-pytest -q -m integration
-```
-
-## Project Layout
-
-```text
-config/config.yaml     # Pipeline configuration
-src/                   # Core modules
-tests/                 # Unit tests
-notebooks/             # Exploratory notebooks
-data/                  # Raw, processed, features, backtests
-runs/                  # Timestamped pipeline runs
-reports/               # final_report.md + final/, mode_comparison/, assets/
-PROJECT_SUMMARY.md     # Branch-level summary, current findings, and interpretation
-DATA_SOURCES_AND_ETL.md # Data provenance, ETL, validation, and caveats
-docs/                  # Specifications (copied from llm/docs)
-llm/                   # LLM instruction bundle
-```
-
-## Pipeline Stages
-
-1. Data ingest (yfinance + FRED)
-2. Validation and balanced panel
-3. Feature engineering (no look-ahead)
-4. M1 rule-based side model
-5. M2 meta-labeling model
-6. Position sizing (binary, linear, ECDF)
-7. Backtest vs equal-weight and 60/40 benchmarks
-8. Diagnostics and final report (includes M1 exposure / per-asset IC diagnostics)
-
-## M1 Improvements (Sharpe-preserving)
-
-Configurable in `config/config.yaml` under `models.m1` and `portfolio`:
-
-| Feature | Config | Effect |
-| --- | --- | --- |
-| Top-K allocation | `allocation_mode: top_k`, `top_k: 3` | Weekly cross-sectional longs in best-ranked names |
-| Conviction sizing | `conviction_sizing: false` | Keep top-K M1 winners at full base budget; M2 sizing still scales meta-labeled variants |
-| Portfolio threshold tune | `tune_objective: portfolio` | Train thresholds on net Sharpe (threshold mode only) |
-| Vol targeting | `portfolio.vol_target_ann: 0.12` | Scale gross exposure to hit a vol budget |
-| ML M1 | `models.m1.type: ml` | Logistic regression on engineered features |
-| New features | `rel_mom_12w`, carry, mom×vol | Relative momentum and macro carry proxies |
-
-## Design Rules
-
-- No time-series shuffling
-- Features use only data available at or before signal time
-- Train/test split configurable in `config/config.yaml` or via `--data-start`, `--train-start`, `--train-end`, `--test-start`, `--test-end`
-- `train_start` may be before 2006, but the default **full 7-asset** panel starts ~2007 when VEA/HYG exist; use `--partial-universe` for earlier subsets
-- Default split: train 2006–2020; test 2021–latest
-- LLM features disabled by default
-
-See [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) and [docs/ACCEPTANCE_TESTS.md](docs/ACCEPTANCE_TESTS.md) for full specifications.
-
-## Reports
-
-- [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — branch-level overview, methods tried, latest insights, and M1/M2 interpretation
-- [`DATA_SOURCES_AND_ETL.md`](DATA_SOURCES_AND_ETL.md) — source data, ETL flow, validation checks, and reviewer caveats
-- [`reports/final_report.md`](reports/final_report.md) — strategy comparison (long-only vs long/short M1)
-- [`reports/assets/asset_component_analysis.md`](reports/assets/asset_component_analysis.md) — per-asset buy-and-hold (SPY/S&P 500, bonds, gold, etc.) and data source documentation
-
-## Grid Search (40 runs)
-
-Sweep train-end dates, M2 threshold, and transaction costs. Results are ranked by **test-set** Sharpe (M1+M2 Linear, long-only); full-sample metrics are stored for reference.
-
-Note: the checked-in 40-run sweep was run **before** the current top-K / 12% vol-target / no-conviction M1 defaults. Treat it as historical sensitivity evidence, not final hyperparameter proof for the latest configuration.
+## Usage
 
 ```bash
-# Preview 40 combinations (no execution)
-python scripts/grid_search.py --dry-run
-
-# Full sweep using cached data (~25–35 min locally)
-python scripts/grid_search.py
-
-# Smoke test (2 runs)
-python scripts/grid_search.py --max-runs 2
-
-# Force fresh downloads
-python scripts/grid_search.py --refresh-data
-
-# Resume an interrupted sweep
-python scripts/grid_search.py --resume --sweep-dir runs/grid_search/<sweep_id>
+pip install -r requirements.txt      # pandas, numpy, scikit-learn, yfinance, pyyaml
+python fetch_indices.py              # download index/proxy series into data/raw/index/
+python run_all.py                    # strategy + attribution + walk-forward -> reports/
 ```
 
-Outputs land in `runs/grid_search/<sweep_id>/`:
+Individual stages:
+```bash
+python run_m1.py            # M1 allocation for the latest week
+python run_strategy.py      # full M1 / M1+M2 backtest + M2 evaluation suite
+python run_attribution.py   # factor and cost attribution
+python run_walkforward.py   # walk-forward validation across windows
+python -m pytest tests/     # correctness tests (no look-ahead, embargo, constraints)
+```
 
-- `results.csv` / `results.jsonl` — master comparison table
-- `summary.md` — top 10 by test-set Sharpe
-- `run_NNN/` — per-run config, metrics, and backtest snapshots
+Configuration lives in `config/config.yaml` (universe, factor weights, split,
+risk/cost parameters, baseline portfolios).
 
-Edit [`scripts/grid_search_spec.yaml`](scripts/grid_search_spec.yaml) to change the parameter grid.
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/data.py` | market + macro ingestion (yfinance, FRED), weekly resampling, index loader |
+| `src/features.py` | no-look-ahead factors: momentum, trend, macro tilt, regime, volatility |
+| `src/m1.py` | static linear directional model |
+| `src/m2.py` | dynamic regime-aware meta-label (rolling logistic, embargo) |
+| `src/portfolio.py` | benchmark-relative weights, vol targeting, two-layer costs |
+| `src/backtest.py` | returns, Sharpe, drawdown, information ratio, baselines |
+| `src/evaluation.py` | M2 classifier metrics (F1, AUC-ROC, AUC-PR, calibration) |
+| `config/config.yaml` | all parameters |
+| `tests/` | correctness tests |
+| `reports/` | generated results and write-ups |
+
+## Methodology notes
+
+- No look-ahead: rolling features are shifted; macro is lagged four weeks; a
+  four-week embargo separates train and test to prevent label leakage.
+- Train through 2020, test from 2021 onward; walk-forward across multiple windows.
+- Shorting is not required: an underweight relative to the benchmark is an implicit
+  short, so the strategy expresses views through bounded active tilts.
+
+## Results
+
+Full sample 2000–2026, out-of-sample (OOS) from 2021.
+
+| Strategy | Sharpe | Max DD | Sharpe (OOS) | Info Ratio (OOS) |
+|---|---:|---:|---:|---:|
+| Equal-Weight | 0.62 | -30% | 0.76 | — |
+| Moderate Growth | 0.56 | -34% | 0.71 | -0.32 |
+| Institutional | 0.63 | -29% | 0.74 | -0.64 |
+| **M1-only** | **0.65** | **-22%** | **0.81** | **+0.18** |
+| M1 + M2 | 0.61 | -25% | 0.78 | -0.00 |
+
+Walk-forward Sharpe by window: equal-weight 0.30 / 0.59 / 0.48 / 0.76 vs M1-only
+0.05 / 0.53 / 0.15 / **0.81** across 2014-16 / 2016-18 / 2018-20 / 2021-now.
+
+### What the results mean
+
+- **M1 works, modestly.** It beats all three baselines on risk-adjusted return and
+  cuts drawdown the most (-22% vs -30% for equal-weight), with a positive OOS
+  information ratio. Its two sub-signals (momentum, trend) reinforce each other
+  (positive interaction), so they are complementary rather than redundant.
+- **M1's edge is regime-concentrated.** Walk-forward shows it clearly beats
+  equal-weight only in the 2021+ window; full-sample numbers flatter it than the
+  regime-by-regime view does. The edge is real but not uniform across history.
+- **M2 does not add value yet.** Its probabilities carry no information — realized
+  success is flat across every predicted bucket (predicted 0.14 → realized 0.44;
+  predicted 0.82 → realized 0.43), AUC-ROC ≈ 0.50 full / 0.46 OOS, and it
+  underperforms M1 in every walk-forward window. This held under both proxy and real
+  macro data, so it is a robust finding, not a tuning artifact. Reformulating the
+  meta-label is the open research question.
+- **Costs are modest and turnover-driven:** gross 6.48% → net of expense 6.39% → net
+  of all costs 6.19% annualized (transaction ≈ 29 bps vs expense ratio ≈ 9 bps).
+
+## Open questions / discussion
+
+- **M2 reformulation** — should the meta-label become (a) a regime gate that scales
+  total active risk down in stress regimes, (b) a factor-timer (momentum vs trend by
+  regime), or (c) a different prediction target / horizon? The current per-asset,
+  4-week, benchmark-relative success label extracts no signal.
+- **M1 robustness** — is a recent-regime-concentrated edge acceptable, or do we need
+  an M1 that is robust across regimes?
+- **Data** — prioritize Bloomberg true-index history (pre-2012)? Which sleeves first?
+- **Universe** — stay at 7 sleeves, or add investment-grade credit + broad commodity (9)?
+- **Benchmark / tracking-error budget** for the information-ratio framing?
+
+## Limitations
+
+- Research-grade data (yfinance, FRED, ETF proxies); free index history is limited,
+  so a true long-history index study requires institutional data.
+- Historical simulation only — no capacity, market impact, borrow, or live execution.
+- Some diagnostics are full-sample; production validation would extend the
+  walk-forward and purged cross-validation.
