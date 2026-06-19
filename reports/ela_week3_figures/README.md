@@ -12,6 +12,16 @@ These four figures come from the clean-rebuild meta-labeling pipeline
 | `walk_forward.png` | Sharpe by chronological window ('14–'16, '16–'18, '18–'20, '21–now). |
 | `m2_calibration.png` | M2 predicted P(success) vs realized. Flat line ≈ no signal yet. |
 | `attribution.png` | M1 sub-factor Sharpe: Momentum 0.65 / Trend 0.62 / merged Technical 0.67. |
+| `asset_class_returns.png` | Cumulative growth of the 3 asset classes (Equity / Fixed Income / Alternatives), with faded individual members. |
+| `group_weights.png` | How M1 rotates active allocation across the 3 classes over time (dashed = equal-weight benchmark). |
+| `asset_active_tilt.png` | Average over/underweight per asset vs the 1/N benchmark — M1 most underweights TLT (-3.0%), most overweights GLD (+1.7%). |
+
+## Asset universe & grouping
+
+7 assets in 3 classes: **Equity** = SPY (US), VEA (developed ex-US), VWO (EM);
+**Fixed Income** = TLT (Treasuries), HYG (high yield); **Alternatives** = GLD
+(gold), VNQ (REITs). Equal-weight benchmark = 1/7 each (Equity 42.9%, FI 28.6%,
+Alt 28.6%). Asset-group figures are produced by `make_asset_figures.py`.
 
 ## Headline numbers (full sample / OOS)
 
