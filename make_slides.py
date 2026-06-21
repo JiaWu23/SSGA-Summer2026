@@ -7,11 +7,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR
 from pptx.util import Inches, Pt
+
+FIGDIR = Path(__file__).resolve().parent / "reports" / "figures"
 
 NAVY = RGBColor(0x0B, 0x2A, 0x4A)
 GREY = RGBColor(0x55, 0x5B, 0x66)
@@ -19,7 +22,7 @@ ACCENT = RGBColor(0x1F, 0x6F, 0xB2)
 LIGHT = RGBColor(0xEC, 0xF1, 0xF6)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
-DATE = "June 18, 2026"
+DATE = "June 21, 2026"
 FOOT = "Multi-Asset Meta-Labeling  ·  " + DATE
 
 prs = Presentation()
@@ -96,6 +99,38 @@ def content(title, bullets, takeaway=None):
     return s
 
 
+def image_slide(title, fig_name, bullets, takeaway=None):
+    """Figure on the left, interpretation bullets on the right."""
+    s = prs.slides.add_slide(BLANK)
+    _header(s, title)
+    img = FIGDIR / fig_name
+    # fit the picture inside a left-hand box (max 7.5w x 4.9h), preserving aspect
+    max_w, max_h = 7.5, 4.9
+    iw, ih = Image.open(img).size
+    scale = min(max_w / iw, max_h / ih)
+    w, h = iw * scale, ih * scale
+    left = 0.6 + (max_w - w) / 2
+    top = 1.5 + (max_h - h) / 2
+    s.shapes.add_picture(str(img), Inches(left), Inches(top), height=Inches(h))
+    # interpretation on the right
+    body = _tb(s, 8.4, 1.5, 4.4, 4.9)
+    for i, (txt, lvl) in enumerate(bullets):
+        par = body.paragraphs[0] if i == 0 else body.add_paragraph()
+        par.text = ("■  " if lvl == 0 else "–  ") + txt
+        par.level = lvl
+        par.font.size = Pt(14 if lvl == 0 else 12)
+        par.font.bold = lvl == 0
+        par.font.color.rgb = NAVY if lvl == 0 else GREY
+        par.space_after = Pt(6)
+    if takeaway:
+        _rect(s, 0.6, 6.5, 12.13, 0.5, LIGHT)
+        tk = _tb(s, 0.8, 6.53, 11.8, 0.45, MSO_ANCHOR.MIDDLE)
+        p = tk.paragraphs[0]; p.text = "Takeaway:  " + takeaway
+        p.font.size = Pt(12); p.font.bold = True; p.font.color.rgb = ACCENT
+    _footer(s)
+    return s
+
+
 def table_slide(title, headers, rows, note=None, highlight_row=None, note_label="What it means"):
     s = prs.slides.add_slide(BLANK)
     _header(s, title)
@@ -157,6 +192,17 @@ content("Architecture", [
     ("Discipline — no look-ahead, 4-week macro lag, 4-week train/test embargo.", 0),
 ], takeaway="M1 is simple on purpose; all dynamic / regime intelligence is isolated in M2.")
 
+image_slide("The Universe — Seven Sleeves, Three Classes", "asset_class_returns.png", [
+    ("7 assets grouped into 3 classes:", 0),
+    ("Equity — SPY, VEA, VWO", 1),
+    ("Fixed Income — TLT, HYG", 1),
+    ("Alternatives — gold (GLD), REITs (VNQ)", 1),
+    ("Each class has a distinct risk-return profile:", 0),
+    ("Equity is most volatile (deepest 2008 drawdown)", 1),
+    ("Fixed Income is the smoothest sleeve", 1),
+    ("Alternatives compounded the most post-2008", 1),
+], takeaway="Different behaviour across classes is exactly why dynamic allocation across them can add value.")
+
 table_slide("M1 — Static Directional Model: worked 3-asset example",
             ["Asset", "12w mom (z)", "trend (z)", "Technical", "Rank", "Tilt", "Weight"],
             [["S&P 500", "+1.08", "+0.99", "+1.03", "best", "+10%", "43.3%"],
@@ -165,6 +211,33 @@ table_slide("M1 — Static Directional Model: worked 3-asset example",
             note="Score each factor, z-score across assets, rank, then tilt around the 1/7 benchmark. "
                  "An underweight is an implicit short — no outright shorting needed.",
             highlight_row=0)
+
+image_slide("M1 in Action — Allocation Rotates Over Time", "group_weights.png", [
+    ("M1 is static, yet it still rotates allocation meaningfully week to week.", 0),
+    ("Dashed lines = equal-weight benchmark (Equity 42.9%, +FI 71.4%).", 0),
+    ("Equity swings well above and below its benchmark weight:", 0),
+    ("leans in when price trends are strong", 1),
+    ("backs off when they are not", 1),
+    ("All benchmark-relative — an underweight is a synthetic short, so we never short outright.", 0),
+], takeaway="A simple static signal produces real, dynamic-looking allocation — no learning required.")
+
+image_slide("What M1 Structurally Does — Average Tilts", "asset_active_tilt.png", [
+    ("Average over/underweight vs the 1/N benchmark, per asset.", 0),
+    ("Most underweights Treasuries (TLT -3.0%).", 0),
+    ("Most overweights gold (+1.7%) and US equity (+0.8%).", 0),
+    ("This is the momentum/trend signal expressing itself:", 0),
+    ("gold trended up over the sample", 1),
+    ("long bonds trended down, especially 2022", 1),
+    ("Exactly the attribution SSGA cares about — we can name the P&L drivers.", 0),
+], takeaway="We can point to which asset bets drive returns, not just a black-box weight vector.")
+
+image_slide("Why M1 Merges Momentum + Trend", "attribution.png", [
+    ("Momentum and trend are collinear — they measure the same thing.", 0),
+    ("So we merge them into one 'technical' factor.", 0),
+    ("Merged beats either alone (Sharpe 0.67 vs 0.65 / 0.62).", 0),
+    ("Positive interaction (+0.01) — they reinforce, not cancel.", 0),
+    ("Keeping collinear factors separate would make attribution impossible.", 0),
+], takeaway="Merging collinear factors is both cleaner for attribution and slightly better performing.")
 
 content("M2 — Dynamic Meta-Label", [
     ("Target — did M1's benchmark-relative bet pay over the next 4 weeks?", 0),
@@ -197,6 +270,15 @@ table_slide("Results — Strategy   (full sample 2000-2026; OOS from 2021)",
                  "(-22% vs -30%). Adding M2 makes every metric slightly worse.",
             highlight_row=3)
 
+image_slide("Headline Result — Growth of $1", "equity_curves.png", [
+    ("Equal-Weight vs M1 vs M1+M2 (log scale).", 0),
+    ("On a risk-adjusted basis M1 wins:", 0),
+    ("Sharpe 0.65 vs 0.62 for equal-weight", 1),
+    ("max drawdown -21.8% vs -29.9% — much shallower", 1),
+    ("Out-of-sample (2021+), M1 is the only strategy with a positive info ratio (+0.18).", 0),
+    ("Raw growth favours equal-weight, but SSGA's lens is risk-adjusted + benchmark-relative.", 0),
+], takeaway="M1 adds value where it matters to SSGA: risk-adjusted, benchmark-relative return.")
+
 table_slide("Results — Walk-Forward   (Sharpe by window)",
             ["Window", "Equal-Weight", "M1-only", "M1 + M2"],
             [["2014-2016", "0.30", "0.05", "0.17"],
@@ -207,6 +289,14 @@ table_slide("Results — Walk-Forward   (Sharpe by window)",
                  "Full-sample numbers flatter M1 than the regime-by-regime view.",
             highlight_row=3)
 
+image_slide("Robustness — Sharpe Across Regimes", "walk_forward.png", [
+    ("We test four time windows, not one backtest, to check the edge isn't a fluke.", 0),
+    ("M1 is strongest in trending regimes ('21-now).", 0),
+    ("Weaker in choppy regimes ('18-'20) — consistent with a trend signal.", 0),
+    ("No window is catastrophic.", 0),
+    ("The edge is regime-dependent — which is precisely the problem M2 is meant to solve.", 0),
+], takeaway="M1's edge is real but regime-concentrated; closing that gap is M2's job.")
+
 content("Key Finding — M2 Does Not Add Value Yet", [
     ("M2's probabilities carry no information — realized success is flat across every predicted bucket:", 0),
     ("predicted 0.14 → realized 0.44   |   predicted 0.82 → realized 0.43", 1),
@@ -215,6 +305,16 @@ content("Key Finding — M2 Does Not Add Value Yet", [
     ("M2 underperforms M1-only in every walk-forward window.", 0),
     ("Held under both proxy and real macro data — robust, not a tuning artifact.", 0),
 ], takeaway="The meta-label as specified (per-asset, 4-week, benchmark-relative) extracts no conditional signal.")
+
+image_slide("The Evidence — M2 Calibration Is Flat", "m2_calibration.png", [
+    ("Predicted P(success) vs realized success rate.", 0),
+    ("A flat line means the probabilities carry no information.", 0),
+    ("predicted 0.14 -> realized 0.44", 1),
+    ("predicted 0.82 -> realized 0.43", 1),
+    ("AUC ~ 0.50 — essentially a coin flip.", 0),
+    ("Not a dead end — it is the open research question; the project's value is making M2 work.", 0),
+    ("May be data-driven: free ETF proxies + short macro history, not Bloomberg index data.", 0),
+], takeaway="Honest status: M2 has no signal yet. Reformulating it is the core next step.")
 
 content("Attribution — Factors & Costs", [
     ("M1 decomposed into its two sub-signals (full-sample Sharpe):", 0),
