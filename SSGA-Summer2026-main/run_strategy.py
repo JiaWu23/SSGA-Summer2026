@@ -17,6 +17,7 @@ from src.data import IndexFileProvider, ingest_macro_data, ingest_market_data
 from src.features import (
     get_vix_series, macro_asset_tilt, macro_wide, momentum_score, pivot_prices,
     regime_features, risk_score, technical_score, trend_score,
+    relative_momentum_score, high_proximity_score, reversal_score,
 )
 from src.m1 import M1Model
 from src.m2 import M2Model, build_feature_matrix, build_meta_labels
@@ -49,7 +50,16 @@ def main() -> None:
     vol = risk_score(prices, cfg.risk_layer.vol_windows)
 
     m1 = M1Model(cfg.m1)
-    score = m1.score({"technical": 0.5 * mom + 0.5 * trd})
+    tech    = 0.5 * mom + 0.5 * trd
+    rel_m   = relative_momentum_score(prices, window=12)
+    hi_prox = high_proximity_score(prices, window=52)
+    rev     = reversal_score(prices)
+    score = m1.score({
+        "technical":      tech,
+        "rel_momentum":   rel_m,
+        "high_proximity": hi_prox,
+        "reversal":       rev,
+    })
     risk = vol   # only used if risk_layer.enabled (off by default)
 
     def sleeve(size=None):

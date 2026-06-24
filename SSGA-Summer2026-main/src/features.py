@@ -150,3 +150,30 @@ def get_vix_series(market_weekly: pd.DataFrame) -> pd.Series | None:
     s = vix.copy()
     s["date"] = pd.to_datetime(s["date"])
     return s.set_index("date")["adj_close"].sort_index()
+    
+#new factors (week4)
+# ---------- NEW STATIC M1 FACTORS ----------
+
+def relative_momentum_score(prices: pd.DataFrame, window: int = 12) -> pd.DataFrame:
+    """Each asset's return minus the equal-weight universe average return.
+    Captures whether an asset is strong RELATIVE to the group, not just in
+    absolute terms. Static: same formula every week, no fitting, no regime logic."""
+    mom = prices.pct_change(window).shift(1)
+    universe_avg = mom.mean(axis=1)
+    return _cross_sectional_z(mom.sub(universe_avg, axis=0))
+
+
+def high_proximity_score(prices: pd.DataFrame, window: int = 52) -> pd.DataFrame:
+    """How close is each asset to its 52-week high?
+    Assets near their all-time high tend to have persistent price strength.
+    Static: fixed 52-week window, fixed formula, no learning."""
+    proximity = (prices / prices.rolling(window).max()).shift(1)
+    return _cross_sectional_z(proximity)
+
+
+def reversal_score(prices: pd.DataFrame) -> pd.DataFrame:
+    """Short-term 1-week reversal. Recent weekly losers tend to mean-revert.
+    Given a small weight — acts as a mild diversifier against momentum.
+    Static: no parameters at all."""
+    rev = -prices.pct_change(1).shift(1)
+    return _cross_sectional_z(rev)
