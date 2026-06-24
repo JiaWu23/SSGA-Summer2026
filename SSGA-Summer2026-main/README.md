@@ -8,29 +8,72 @@ Research and educational use only — not investment advice.
 The pipeline allocates across a seven-sleeve global asset universe and separates the
 allocation decision into two stages plus a portfolio layer:
 
-- **M1 — static directional model.** A simple, linear signal that decides which
-  assets to favour. It uses only static price factors (momentum + trend), kept
-  deliberately lean.
-- **M2 — dynamic meta-label.** A logistic-regression layer that, conditioned on the
-  market regime, estimates whether an M1 view is likely to pay and sizes accordingly.
-  It receives the individual factors (momentum, trend, macro, volatility) and regime
-  features separately, so it can weight them dynamically.
+- **M1 — static directional model.** A simple, linear, rule-based signal that ranks assets each week using fixed-weight price factors only. No learning, no regime switching, no dynamic adjustment. Deliberately kept lean so M2 has meaningful signal to evalute
+- **M2 — dynamic meta-label.** Asks "given the current market regime, how
+much should I trust M1's signal?" Sizes M1's active tilt up or down based on M1's
+recent track record and regime context. All dynamic logic lives here.
 - **Portfolio.** Benchmark-relative active weights (benchmark ± bounded tilt),
   volatility targeting, position caps, and a two-layer cost model (expense ratio +
   transaction cost). The headline metric is the information ratio.
 
 Design principle: **static factors live in M1, dynamic factors live in M2.**
 
-## Asset universe
 
-S&P 500 · MSCI EAFE · MSCI Emerging Markets · U.S. Treasury 7–10Y · U.S. High Yield ·
-Gold · U.S. REITs. Signals are computed on index series where available; instrument
-substitution (ETFs) is used at the implementation stage. See `DATA_SOURCES.md`.
+## M1 — Static Directional Model
+
+M1 is a pure cross-sectional ranker. Every week it scores each asset using four
+static price factors, blends them with fixed weights, and tilts the portfolio toward
+higher-scored assets. Nothing changes week to week except the input prices.
+
+### M1 Factors (all static, all price-based, no learning)
+
+| Factor | Weight | Definition |
+|---|---:|---|
+| **Technical** | 0.40 
+| `0.5 × z(momentum) + 0.5 × z(trend)`. Momentum = avg pct_change over [12, 26] weeks. Trend = MA(10)/MA(40) − 1. Both cross-sectionally z-scored. |
+| **Relative Momentum** | 0.30 | Each asset's 12-week return minus the equal-weight universe average. Captures strength relative to the group, not just in absolute terms. |
+| **52-Week High Proximity** | 0.20 | Price / rolling 52-week high. Assets near their high have persistent price strength. |
+| **Short-Term Reversal** | 0.10 | Negative of the 1-week return. Mild mean-reversion counterbalance to momentum. |
+
+All factors are cross-sectionally z-scored so they live on a comparable scale.
+Every input uses `shift(1)` — strictly no look-ahead.
+
+### M1 Factor Weights vs Benchmark
+
+The benchmark and the M1 factors are two separate things:
+
+- **Benchmark** = equal weight (1/N), defined in config under `baselines`.
+  Each asset gets 1/7 = 14.3% by default.
+- **M1 factors** = signals that decide how to tilt AWAY from the benchmark.
+
+The flow is:
+Benchmark (equal weight 1/N)
+
++ M1 active tilt (driven by the 4 factors above)
+
+= final portfolio weights
+
+
+## Asset Universe
+
+| Asset Class | ETF Proxy | Index (target) |
+|---|---|---|
+| U.S. Equity | SPY | S&P 500 Index |
+| Developed Intl Equity | VEA | MSCI EAFE Index |
+| Emerging Markets Equity | VWO | MSCI Emerging Markets Index |
+| U.S. Treasury | TLT | S&P U.S. Treasury Bond 7-10yr Index |
+| High Yield Bond | HYG | ICE BofA U.S. High Yield (total return) |
+| Gold | GLD | Gold Spot Price |
+| Real Estate | VNQ | Nasdaq U.S. Benchmark REIT Index |
+
+Note: HYG OAS (credit spread) is kept as an M2 regime feature only — it is a spread
+series, not total return, so it cannot be used directly as an M1 price signal.
+
 
 ## Usage
 
 ```bash
-pip install -r requirements.txt      # pandas, numpy, scikit-learn, yfinance, pyyaml
+pip install -r requirements.txt      # pandas, numpy, scikit-learn, yfinance, pyyaml, pyarrow
 python fetch_indices.py              # download index/proxy series into data/raw/index/
 python run_all.py                    # strategy + attribution + walk-forward -> reports/
 ```
@@ -44,76 +87,61 @@ python run_walkforward.py   # walk-forward validation across windows
 python -m pytest tests/     # correctness tests (no look-ahead, embargo, constraints)
 ```
 
-Configuration lives in `config/config.yaml` (universe, factor weights, split,
-risk/cost parameters, baseline portfolios).
+Configuration lives in `config/config.yaml`.
+
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
 | `src/data.py` | market + macro ingestion (yfinance, FRED), weekly resampling, index loader |
-| `src/features.py` | no-look-ahead factors: momentum, trend, macro tilt, regime, volatility |
+| `src/features.py` | no-look-ahead factors: momentum, trend, relative momentum, 52w high proximity, reversal, regime |
 | `src/m1.py` | static linear directional model |
 | `src/m2.py` | dynamic regime-aware meta-label (rolling logistic, embargo) |
 | `src/portfolio.py` | benchmark-relative weights, vol targeting, two-layer costs |
 | `src/backtest.py` | returns, Sharpe, drawdown, information ratio, baselines |
 | `src/evaluation.py` | M2 classifier metrics (F1, AUC-ROC, AUC-PR, calibration) |
 | `config/config.yaml` | all parameters |
-| `tests/` | correctness tests |
-| `reports/` | generated results and write-ups |
+| `FACTORS.md` | detailed factor definitions and worked example |
+| `DATA_SOURCES.md` | index vs ETF mapping and data source decisions |
 
-## Methodology notes
-
-- No look-ahead: rolling features are shifted; macro is lagged four weeks; a
-  four-week embargo separates train and test to prevent label leakage.
-- Train through 2020, test from 2021 onward; walk-forward across multiple windows.
-- Shorting is not required: an underweight relative to the benchmark is an implicit
-  short, so the strategy expresses views through bounded active tilts.
-
-## Results
+## Latest Results
 
 Full sample 2000–2026, out-of-sample (OOS) from 2021.
 
 | Strategy | Sharpe | Max DD | Sharpe (OOS) | Info Ratio (OOS) |
 |---|---:|---:|---:|---:|
-| Equal-Weight | 0.62 | -30% | 0.76 | — |
-| Moderate Growth | 0.56 | -34% | 0.71 | -0.32 |
-| Institutional | 0.63 | -29% | 0.74 | -0.64 |
-| **M1-only** | **0.65** | **-22%** | **0.81** | **+0.18** |
-| M1 + M2 | 0.61 | -25% | 0.78 | -0.00 |
+| Equal-Weight | 0.57 | -39% | 0.71 | — |
+| Moderate Growth | 0.56 | -40% | 0.63 | -0.38 |
+| Institutional | 0.61 | -35% | 0.59 | -0.80 |
+| **M1-only** | **0.56** | **-32%** | **0.70** | **-0.11** |
+| M1 + M2 | 0.55 | -32% | 0.72 | -0.08 |
 
-Walk-forward Sharpe by window: equal-weight 0.30 / 0.59 / 0.48 / 0.76 vs M1-only
-0.05 / 0.53 / 0.15 / **0.81** across 2014-16 / 2016-18 / 2018-20 / 2021-now.
+M1 reduces max drawdown meaningfully (-32% vs -39% equal-weight). IR is negative
+because M1 slightly underperforms equal-weight on return while taking active risk —
+this is the open research question for M1 factor improvement and window tuning.
 
-### What the results mean
+---
 
-- **M1 works, modestly.** It beats all three baselines on risk-adjusted return and
-  cuts drawdown the most (-22% vs -30% for equal-weight), with a positive OOS
-  information ratio. Its two sub-signals (momentum, trend) reinforce each other
-  (positive interaction), so they are complementary rather than redundant.
-- **M1's edge is regime-concentrated.** Walk-forward shows it clearly beats
-  equal-weight only in the 2021+ window; full-sample numbers flatter it than the
-  regime-by-regime view does. The edge is real but not uniform across history.
-- **M2 does not add value yet.** Its probabilities carry no information — realized
-  success is flat across every predicted bucket (predicted 0.14 → realized 0.44;
-  predicted 0.82 → realized 0.43), AUC-ROC ≈ 0.50 full / 0.46 OOS, and it
-  underperforms M1 in every walk-forward window. This held under both proxy and real
-  macro data, so it is a robust finding, not a tuning artifact. Reformulating the
-  meta-label is the open research question.
-- **Costs are modest and turnover-driven:** gross 6.48% → net of expense 6.39% → net
-  of all costs 6.19% annualized (transaction ≈ 29 bps vs expense ratio ≈ 9 bps).
+## Methodology notes
+
+- No look-ahead: all rolling features use `shift(1)`; macro lagged 4 weeks;
+  4-week embargo between train and test prevents label leakage.
+- Train through 2020, test from 2021 onward.
+- Shorting is not required: underweight relative to benchmark = implicit short.
+- Benchmark = equal weight (1/N); active tilt bounded at ±10% per asset.
+
+---
+
 
 ## Open questions / discussion
 
-- **M2 reformulation** — should the meta-label become (a) a regime gate that scales
-  total active risk down in stress regimes, (b) a factor-timer (momentum vs trend by
-  regime), or (c) a different prediction target / horizon? The current per-asset,
-  4-week, benchmark-relative success label extracts no signal.
-- **M1 robustness** — is a recent-regime-concentrated edge acceptable, or do we need
-  an M1 that is robust across regimes?
-- **Data** — prioritize Bloomberg true-index history (pre-2012)? Which sleeves first?
-- **Universe** — stay at 7 sleeves, or add investment-grade credit + broad commodity (9)?
-- **Benchmark / tracking-error budget** for the information-ratio framing?
+- **M1 window testing** — compare momentum windows [12, 26] vs [24, 52] on IR
+- **M2 implementation** — build rolling M1 hit rate feature; add NFCI, STLFSI4,
+  bond-equity correlation as regime inputs
+- **Index data** — wire MSCI EAFE, MSCI EM, Treasury 7-10Y index series for
+  longer pre-2007 history
+- **Universe** — evaluate adding investment-grade credit (LQD) and broad commodity (DBC)
 
 ## Limitations
 

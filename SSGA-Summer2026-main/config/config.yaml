@@ -22,16 +22,18 @@ labels:
   positive_threshold: 0.005
   negative_threshold: -0.005
 
-# --- M1: PURE STATIC price signal. momentum + trend only. ---
-# Principle: STATIC factors -> M1, DYNAMIC factors -> M2. Macro and risk are dynamic,
+# --- M1: PURE STATIC price signal. . ---
+# Principle: STATIC factors -> M1, static factors -> M2, dynamic,
 # so they live in M2 (as features), not here. This keeps M1 maximally simple.
 m1:
   factors:
-    technical: 1.0            # momentum + trend merged (the only M1 factor)
-  momentum_windows: [4, 12, 26, 52]
+    technical: 0.40           # momentum + trend merged (existing)
+    rel_momentum: 0.30        # new: performance relative to universe
+    high_proximity: 0.20      # new: proximity to 52-week high
+    reversal: 0.10            # new: short-term mean reversion (small weight)
+  momentum_windows: [12, 26]  # simplified from [4,12,26,52] per advisor
   trend_windows: [10, 40]
-  allow_short: false          # benchmark-relative tilts make outright shorts non-critical
-
+  allow_short: false
 # Risk is DYNAMIC (vol-based) -> handled in M2 as a feature, NOT a static overlay.
 # Thresholds are likewise a separate, later layer (not built now). vol_windows here
 # feeds the volatility feature passed to M2.
