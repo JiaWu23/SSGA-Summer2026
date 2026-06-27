@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 
 import pandas as pd
+import numpy as np
 
 from src import evaluation
 from src.backtest import equal_weight_returns, metrics, portfolio_returns, static_portfolio_returns
@@ -76,7 +77,13 @@ def main() -> None:
     m2 = M2Model(cfg)
     labels = build_meta_labels(prices, w_m1, cfg.labels.horizon_weeks, benchmark_w,
                                cfg.labels.positive_threshold)
-    feats = build_feature_matrix({"momentum": mom, "trend": trd, "macro": mac, "vol": vol}, regime)
+    # M1 evaluation data -> M2 (track record, not ingredients)
+    hit_rate = labels.rolling(12, min_periods=4).mean().shift(1)
+    ew_ret   = returns.mean(axis=1)
+    act_ret  = returns.sub(ew_ret, axis=0)
+    roll_ir  = (act_ret.rolling(12).mean() / act_ret.rolling(12).std().replace(0, float("nan"))).shift(1)
+    strength = score.abs().shift(1)
+    feats = build_feature_matrix({"hit_rate": hit_rate, "roll_ir": roll_ir, "strength": strength}, regime)
     proba = m2.run_rolling(feats, labels)
     train_ref = proba[proba.index.get_level_values("date") < cfg.split.test_start]
     size = m2.size(proba, train_ref)
