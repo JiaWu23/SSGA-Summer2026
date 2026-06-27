@@ -123,14 +123,51 @@ this is the open research question for M1 factor improvement and window tuning.
 
 ---
 
-## Methodology notes
+## Methodology Notes
 
-- No look-ahead: all rolling features use `shift(1)`; macro lagged 4 weeks;
-  4-week embargo between train and test prevents label leakage.
-- Train through 2020, test from 2021 onward.
-- Shorting is not required: underweight relative to benchmark = implicit short.
-- Benchmark = equal weight (1/N); active tilt bounded at ±10% per asset.
+### No Look-Ahead and Information Leakage
 
+Information leakage is one of the most critical issues in financial ML.
+A model that accidentally sees future information during training will
+look great in backtests but fail completely in live trading. Here is
+exactly how we prevent leakage at every stage:
+
+**M1 — feature construction:**
+- All rolling features use `.shift(1)` — M1 only sees last week's prices,
+  never the current week
+- Momentum: `prices.pct_change(window).shift(1)` — return up to last Friday
+- Trend: `MA_short / MA_long - 1`, both computed on `.shift(1)` prices
+- Relative momentum, 52w high proximity, reversal — all shifted by 1 week
+- M1 never sees the return it is trying to predict
+
+**M2 — evaluation data from M1:**
+- Rolling hit rate: `labels.rolling(12).mean().shift(1)` — M2 only sees
+  whether M1's *past* bets paid off, never the current week's outcome
+- Rolling IR: computed on past active returns, shifted by 1 week
+- Signal strength: M1's score from *last* week, not the current week
+- Regime features (VIX, yield curve, NFCI): all use last available
+  observation, macro data lagged 4 weeks for publication delay
+
+**M2 — training and label embargo:**
+- Meta-label for week t = did M1's bet pay off over weeks t+1 to t+4
+- This means the label for week t is NOT observable until week t+4
+- We enforce a **4-week embargo**: when predicting at week t, M2 only
+  trains on labels that resolved at least 4 weeks before t
+- This prevents M2 from training on labels that haven't happened yet
+- In code: `cutoff = unique_dates[max(0, i - horizon - embargo)]`
+
+**Walk-forward validation:**
+- Train through 2020, test from 2021 onward — strict temporal split
+- M2 refits every 4 weeks using only past data
+- No hyperparameter tuning on the test set
+
+**Summary — three layers of leakage prevention:**
+
+| Layer | Method | Where in code |
+|---|---|---|
+| Feature leakage | `.shift(1)` on all rolling features | `src/features.py` |
+| Label leakage | 4-week embargo between signal and label | `src/m2.py` `run_rolling()` |
+| Validation leakage | strict train/test temporal split | `config/config.yaml` `split` section |
 ---
 
 
