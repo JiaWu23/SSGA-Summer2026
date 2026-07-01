@@ -1,0 +1,4 @@
+m3_mode,m1_candidates,m3_zero_count,m3_active_count,m3_zero_share,mean_m3_size_on_candidates
+binary,2958,21,2937,0.007099391480730223,0.9929006085192698
+linear,2958,0,2958,0.0,0.17946030104856323
+ecdf,2958,0,2958,0.0,0.5324832968260352
