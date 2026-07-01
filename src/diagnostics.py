@@ -404,7 +404,7 @@ def m2_classification_metrics(y_true: pd.Series, y_prob: pd.Series, threshold: f
         metrics["auc_pr"] = float("nan")
     if metrics.get("recall", 0) >= 0.999 and metrics.get("precision", 0) > 0:
         metrics["degeneracy_note"] = (
-            "M2 approves all trades at this threshold; binary M2 equals M1-only."
+            "Binary M3 at this threshold approves all trades; strategy equals M1-only."
         )
     return metrics
 
@@ -1782,7 +1782,10 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
     lines = [
         "## Deep Diagnostics",
         "",
-        "Companion reports provide factor-level, M2 input, regime, and AUC-ROC detail:",
+        "Branch update (vs `main`): [Executive summary](../BRANCH_UPDATE_REPORT.md) · "
+        "[Technical report](branch_update_vitaly_week5.md)",
+        "",
+        "Companion reports provide factor-level, M2 input, regime, M3 allocation, and AUC-ROC detail:",
         "",
         "- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests",
         "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",

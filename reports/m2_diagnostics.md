@@ -17,7 +17,7 @@
 | Mean P (winners) | 0.5953 | Average M2 probability on profitable trades |
 | Mean P (losers) | 0.5915 | Average M2 probability on unprofitable trades |
 | Mean IC | 0.1061 | Spearman rank correlation of M1 scores vs forward returns |
-| Note | — | M2 approves all trades at this threshold; binary M2 equals M1-only. |
+| Note | — | Binary M3 at this threshold approves all trades; strategy equals M1-only. |
 
 ## Understanding AUC-ROC
 

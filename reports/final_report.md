@@ -415,7 +415,9 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 
 ## Deep Diagnostics
 
-Companion reports provide factor-level, M2 input, regime, and AUC-ROC detail:
+Branch update (vs `main`): [Executive summary](../BRANCH_UPDATE_REPORT.md) · [Technical report](branch_update_vitaly_week5.md)
+
+Companion reports provide factor-level, M2 input, regime, M3 allocation, and AUC-ROC detail:
 
 - [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests
 - [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide

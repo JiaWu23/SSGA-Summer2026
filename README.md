@@ -6,7 +6,9 @@ Research-grade Python pipeline for a multi-asset portfolio strategy using meta-l
 
 Start here if you are reviewing this branch:
 
-- [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — current project narrative and M1/M2 interpretation
+- [`BRANCH_UPDATE_REPORT.md`](BRANCH_UPDATE_REPORT.md) — executive summary of `vitaly_week5` vs `main` (for PMs and team leads)
+- [`reports/branch_update_vitaly_week5.md`](reports/branch_update_vitaly_week5.md) — full technical diff, findings, and roadmap
+- [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — current project narrative and M1/M2/M3 interpretation
 - [`DATA_SOURCES_AND_ETL.md`](DATA_SOURCES_AND_ETL.md) — data provenance, ETL, validation, cache behavior, and reviewer caveats
 - [`NEXT_STEPS.md`](NEXT_STEPS.md) — review notes, remaining risks, and recommended research roadmap
 
