@@ -214,7 +214,7 @@ M1 outputs three signal types per asset-week: **short (−1)**, **flat (0)**, or
 | M1 Signal | Observations | Share | Labeled Trades | M1 Hit Rate | Mean Trade Return | M2 Approval Rate | Hit Rate (M2 Approved) | M2 Precision | M2 Recall | M2 F1 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Flat (0) | 1140 | 57.1429% | 0 | — | — | — | — | — | — | — |
-| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 100.0000% | 58.9474% | 0.5895 | 1.0000 | 0.7417 |
+| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 99.6491% | 59.1549% | 0.5915 | 1.0000 | 0.7434 |
 
 ![M2 by M1 signal — Long Only (no shorts)](final/long_only/m2_m1_signal_analysis.png)
 *Long-only mode: M1 never emits −1; shorts are disabled at the signal layer.*
@@ -225,9 +225,9 @@ M1 outputs three signal types per asset-week: **short (−1)**, **flat (0)**, or
 
 | M1 Signal | Observations | Share | Labeled Trades | M1 Hit Rate | Mean Trade Return | M2 Approval Rate | Hit Rate (M2 Approved) | M2 Precision | M2 Recall | M2 F1 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Short (−1) | 855 | 42.8571% | 855 | 40.9357% | -0.2784% | 0.2339% | 100.0000% | 1.0000 | 0.0057 | 0.0114 |
+| Short (−1) | 855 | 42.8571% | 855 | 40.9357% | -0.2784% | 0.3509% | 66.6667% | 0.6667 | 0.0057 | 0.0113 |
 | Flat (0) | 285 | 14.2857% | 0 | — | — | — | — | — | — | — |
-| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 65.4971% | 57.5000% | 0.5750 | 0.6389 | 0.6053 |
+| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 66.1988% | 57.4205% | 0.5742 | 0.6448 | 0.6075 |
 
 ![M2 by M1 signal — Long / Short](final/long_short/m2_m1_signal_analysis.png)
 ## M1 Mode Comparison (M1 Only)
@@ -287,9 +287,9 @@ These metrics cover the full effective panel, including train and test periods. 
 | Equal Weight (1/7) | 7.3625% | 12.8982% | 0.5708 | -39.4430% | 0.0000% | 0.0000 | 55.9838% |
 | 60/40 Benchmark | 6.5640% | 13.2675% | 0.4947 | -43.1363% | -0.7984% | -0.2785 | 56.4909% |
 | M1 Only | 7.3198% | 10.4263% | 0.7021 | -21.0040% | -0.0426% | -0.0413 | 58.8235% |
-| M1 + M2 (Binary) | 7.1641% | 10.3440% | 0.6926 | -23.4770% | -0.1984% | -0.0609 | 58.8235% |
-| M1 + M2 (Linear) | 1.7978% | 2.1391% | 0.8404 | -5.4396% | -5.5647% | -0.5465 | 58.9249% |
-| M1 + M2 (ECDF) | 6.5142% | 7.1713% | 0.9084 | -18.8025% | -0.8483% | -0.1530 | 59.5335% |
+| M1 + M2 (Binary) | 7.3822% | 10.4096% | 0.7092 | -21.0040% | 0.0197% | -0.0341 | 58.8235% |
+| M1 + M2 (Linear) | 1.7673% | 2.0974% | 0.8426 | -5.1107% | -5.5951% | -0.5473 | 59.0264% |
+| M1 + M2 (ECDF) | 6.3013% | 6.8634% | 0.9181 | -17.3612% | -1.0611% | -0.1739 | 59.5335% |
 
 ### Test-Period Strategy Metrics
 
@@ -300,9 +300,9 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | Equal Weight (1/7) | 7.3393% | 10.7090% | 0.6853 | -23.8984% | 0.0000% | 0.0000 | 54.3860% |
 | 60/40 Benchmark | 5.1616% | 10.8912% | 0.4739 | -25.8267% | -2.1777% | -0.8578 | 53.6842% |
 | M1 Only | 8.4044% | 10.6797% | 0.7869 | -21.0040% | 1.0651% | 0.2005 | 59.6491% |
-| M1 + M2 (Binary) | 8.4044% | 10.6797% | 0.7869 | -21.0040% | 1.0651% | 0.2005 | 59.6491% |
-| M1 + M2 (Linear) | 1.9244% | 2.2433% | 0.8579 | -4.7374% | -5.4149% | -0.6536 | 59.2982% |
-| M1 + M2 (ECDF) | 6.9321% | 8.1433% | 0.8513 | -16.2947% | -0.4072% | -0.1122 | 59.6491% |
+| M1 + M2 (Binary) | 8.3437% | 10.6783% | 0.7814 | -21.0040% | 1.0043% | 0.1881 | 59.2982% |
+| M1 + M2 (Linear) | 1.8182% | 2.1442% | 0.8480 | -4.5733% | -5.5211% | -0.6593 | 59.6491% |
+| M1 + M2 (ECDF) | 6.1870% | 7.4202% | 0.8338 | -15.0157% | -1.1524% | -0.2301 | 60.0000% |
 
 ### Charts (Long Only (no shorts))
 
@@ -322,13 +322,18 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 
 | Metric | Value | Meaning |
 | --- | --- | --- |
-| Accuracy | 0.5895 | Share of correct meta-label predictions |
-| Precision | 0.5895 | Approved trades that were actually profitable |
+| Accuracy | 0.5930 | Share of correct meta-label predictions |
+| Precision | 0.5915 | Approved trades that were actually profitable |
 | Recall | 1.0000 | Profitable trades that M2 approved |
-| F1 Score | 0.7417 | Balance of precision and recall |
-| AUC | 0.5713 | Ranking quality of M2 probabilities |
+| F1 Score | 0.7434 | Balance of precision and recall |
+| AUC-ROC | 0.5727 | Ranking quality: P(random winner scored higher than random loser) |
+| AUC-PR | 0.6652 | Precision-recall AUC; more informative when base rate ≠ 50% |
+| Base Rate | 58.9474% | Fraction of M1 trades that beat the cost hurdle |
 | Brier Score | 0.2404 | Probability calibration error (lower is better) |
+| Mean P (winners) | 0.5953 | Average M2 probability on profitable trades |
+| Mean P (losers) | 0.5915 | Average M2 probability on unprofitable trades |
 | Mean IC | 0.1061 | Spearman rank correlation of M1 scores vs forward returns |
+| Note | — | M2 approves all trades at this threshold; binary M2 equals M1-only. |
 
 ## Results: Long / Short
 
@@ -343,9 +348,9 @@ These metrics cover the full effective panel, including train and test periods. 
 | Equal Weight (1/7) | 7.3625% | 12.8982% | 0.5708 | -39.4430% | 0.0000% | 0.0000 | 55.9838% |
 | 60/40 Benchmark | 6.5640% | 13.2675% | 0.4947 | -43.1363% | -0.7984% | -0.2785 | 56.4909% |
 | M1 Only | 1.4041% | 6.9145% | 0.2031 | -14.8093% | -5.9583% | -0.3971 | 51.8256% |
-| M1 + M2 (Binary) | 2.4944% | 6.2918% | 0.3965 | -23.0807% | -4.8681% | -0.4840 | 29.9189% |
-| M1 + M2 (Linear) | 0.6277% | 1.1238% | 0.5585 | -4.2153% | -6.7348% | -0.5987 | 57.0994% |
-| M1 + M2 (ECDF) | 5.3393% | 6.8651% | 0.7777 | -11.0232% | -2.0231% | -0.2108 | 57.8093% |
+| M1 + M2 (Binary) | 3.0134% | 6.5249% | 0.4618 | -22.5914% | -4.3491% | -0.4425 | 31.7444% |
+| M1 + M2 (Linear) | 0.6709% | 1.1762% | 0.5705 | -4.3745% | -6.6915% | -0.5966 | 56.9980% |
+| M1 + M2 (ECDF) | 5.3420% | 6.8506% | 0.7798 | -10.9852% | -2.0205% | -0.2107 | 57.9108% |
 
 ### Test-Period Strategy Metrics
 
@@ -356,9 +361,9 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | Equal Weight (1/7) | 7.3393% | 10.7090% | 0.6853 | -23.8984% | 0.0000% | 0.0000 | 54.3860% |
 | 60/40 Benchmark | 5.1616% | 10.8912% | 0.4739 | -25.8267% | -2.1777% | -0.8578 | 53.6842% |
 | M1 Only | 2.6697% | 5.6340% | 0.4738 | -9.1051% | -4.6697% | -0.4552 | 55.0877% |
-| M1 + M2 (Binary) | 1.9426% | 8.1064% | 0.2396 | -23.0807% | -5.3968% | -0.8286 | 47.7193% |
-| M1 + M2 (Linear) | 0.6238% | 1.4583% | 0.4278 | -4.2015% | -6.7156% | -0.7355 | 58.9474% |
-| M1 + M2 (ECDF) | 5.2136% | 6.8177% | 0.7647 | -11.0232% | -2.1258% | -0.2830 | 59.6491% |
+| M1 + M2 (Binary) | 2.2065% | 8.2088% | 0.2688 | -22.5914% | -5.1329% | -0.7839 | 47.7193% |
+| M1 + M2 (Linear) | 0.6270% | 1.5051% | 0.4166 | -4.3745% | -6.7124% | -0.7372 | 58.9474% |
+| M1 + M2 (ECDF) | 5.2285% | 6.8082% | 0.7680 | -10.9852% | -2.1109% | -0.2827 | 58.9474% |
 
 ### Charts (Long / Short)
 
@@ -378,12 +383,16 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 
 | Metric | Value | Meaning |
 | --- | --- | --- |
-| Accuracy | 0.5509 | Share of correct meta-label predictions |
-| Precision | 0.5765 | Approved trades that were actually profitable |
-| Recall | 0.3794 | Profitable trades that M2 approved |
-| F1 Score | 0.4576 | Balance of precision and recall |
-| AUC | 0.5796 | Ranking quality of M2 probabilities |
+| Accuracy | 0.5503 | Share of correct meta-label predictions |
+| Precision | 0.5747 | Approved trades that were actually profitable |
+| Recall | 0.3829 | Profitable trades that M2 approved |
+| F1 Score | 0.4596 | Balance of precision and recall |
+| AUC-ROC | 0.5789 | Ranking quality: P(random winner scored higher than random loser) |
+| AUC-PR | 0.5435 | Precision-recall AUC; more informative when base rate ≠ 50% |
+| Base Rate | 49.9415% | Fraction of M1 trades that beat the cost hurdle |
 | Brier Score | 0.2466 | Probability calibration error (lower is better) |
+| Mean P (winners) | 0.5291 | Average M2 probability on profitable trades |
+| Mean P (losers) | 0.5165 | Average M2 probability on unprofitable trades |
 | Mean IC | 0.1061 | Spearman rank correlation of M1 scores vs forward returns |
 
 ### How to read the metrics
@@ -397,6 +406,18 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | **Excess vs EW** | Strategy return minus equal-weight benchmark return |
 | **Info Ratio** | Consistency of outperformance vs equal-weight |
 | **Weekly Hit Rate** | Fraction of weeks with positive net strategy return |
+
+## Deep Diagnostics
+
+Companion reports provide factor-level, M2 input, regime, and AUC-ROC detail:
+
+- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests
+- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide
+- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance
+
+- **M1 factors (test):** strongest IC is `trend_score` (mean IC 0.1210).
+- **M2 AUC-ROC (test, long-only):** 0.5727 — weak ranking quality; value is mainly in ECDF sizing, not binary filtering at 0.55.
+- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.
 
 ## Key Takeaways
 

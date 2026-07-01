@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
+    average_precision_score,
     brier_score_loss,
     confusion_matrix,
     f1_score,
@@ -386,12 +387,250 @@ def m2_classification_metrics(y_true: pd.Series, y_prob: pd.Series, threshold: f
         "f1": float(f1_score(y, pred, zero_division=0)),
         "brier_score": float(brier_score_loss(y, p)),
         "confusion_matrix": confusion_matrix(y, pred).tolist(),
+        "base_rate": float(y.mean()),
+        "n_trades": int(len(y)),
+        "mean_p_winners": float(p[y == 1].mean()) if (y == 1).any() else float("nan"),
+        "mean_p_losers": float(p[y == 0].mean()) if (y == 0).any() else float("nan"),
+        "mae": float(np.abs(p - y).mean()),
+        "mean_diff": float((p - y).mean()),
     }
     try:
         metrics["auc"] = float(roc_auc_score(y, p))
     except ValueError:
         metrics["auc"] = float("nan")
+    try:
+        metrics["auc_pr"] = float(average_precision_score(y, p))
+    except ValueError:
+        metrics["auc_pr"] = float("nan")
+    if metrics.get("recall", 0) >= 0.999 and metrics.get("precision", 0) > 0:
+        metrics["degeneracy_note"] = (
+            "M2 approves all trades at this threshold; binary M2 equals M1-only."
+        )
     return metrics
+
+
+def m2_calibration_table(y_true: pd.Series, y_prob: pd.Series, bins: int = 10) -> pd.DataFrame:
+    mask = y_true.notna() & y_prob.notna()
+    df = pd.DataFrame({"y": y_true[mask].astype(int), "p": y_prob[mask]})
+    if df.empty or df["p"].nunique() < 2:
+        return pd.DataFrame()
+    df["bucket"] = pd.qcut(df["p"], q=min(bins, df["p"].nunique()), duplicates="drop")
+    g = df.groupby("bucket", observed=True)
+    return pd.DataFrame(
+        {
+            "n": g.size(),
+            "mean_pred": g["p"].mean(),
+            "realized": g["y"].mean(),
+        }
+    ).reset_index()
+
+
+def m2_probability_decile_returns(panel: pd.DataFrame, bins: int = 10) -> pd.DataFrame:
+    df = panel.reset_index() if isinstance(panel.index, pd.MultiIndex) else panel.copy()
+    trades = df[df["M1_signal"] != 0].dropna(subset=["p_success", "trade_return"])
+    if trades.empty or trades["p_success"].nunique() < 2:
+        return pd.DataFrame()
+    trades = trades.copy()
+    trades["decile"] = pd.qcut(trades["p_success"], q=min(bins, trades["p_success"].nunique()), duplicates="drop")
+    g = trades.groupby("decile", observed=True)
+    return pd.DataFrame(
+        {
+            "n": g.size(),
+            "mean_p_success": g["p_success"].mean(),
+            "mean_trade_return": g["trade_return"].mean(),
+            "hit_rate": g["meta_label"].mean(),
+        }
+    ).reset_index()
+
+
+def m2_feature_importance(m2_model: object, panel: pd.DataFrame, cfg: PipelineConfig) -> pd.DataFrame:
+    from src.model_m2 import SklearnM2, build_m2_features
+
+    if not isinstance(m2_model, SklearnM2) or m2_model.pipeline is None:
+        return pd.DataFrame()
+    if cfg.m2.type != "logistic_regression":
+        return pd.DataFrame()
+
+    pipe = m2_model.pipeline
+    estimators: list = []
+    if hasattr(pipe, "calibrated_classifiers_"):
+        estimators = [cc.estimator for cc in pipe.calibrated_classifiers_]
+    else:
+        estimators = [pipe]
+
+    coefs = []
+    for est in estimators:
+        if not hasattr(est, "named_steps") or "clf" not in est.named_steps:
+            continue
+        clf = est.named_steps["clf"]
+        if not hasattr(clf, "coef_"):
+            continue
+        coefs.append(clf.coef_.ravel())
+    if not coefs:
+        return pd.DataFrame()
+
+    mean_coef = np.mean(coefs, axis=0)
+    importance = pd.DataFrame(
+        {
+            "feature": m2_model.feature_cols,
+            "coefficient": mean_coef,
+            "abs_coefficient": np.abs(mean_coef),
+        }
+    ).sort_values("abs_coefficient", ascending=False)
+    return importance.head(15).reset_index(drop=True)
+
+
+def m2_metrics_by_dimension(
+    panel: pd.DataFrame,
+    dimension: str,
+    threshold: float = 0.55,
+) -> pd.DataFrame:
+    df = panel.reset_index() if isinstance(panel.index, pd.MultiIndex) else panel.copy()
+    trades = df[(df["M1_signal"] != 0) & df["meta_label"].notna() & df["p_success"].notna()]
+    if trades.empty or dimension not in trades.columns:
+        return pd.DataFrame()
+
+    rows = []
+    for val, grp in trades.groupby(dimension):
+        m = m2_classification_metrics(grp["meta_label"], grp["p_success"], threshold)
+        if not m:
+            continue
+        rows.append(
+            {
+                dimension: val,
+                "n_trades": m.get("n_trades", len(grp)),
+                "base_rate": m.get("base_rate", float("nan")),
+                "auc": m.get("auc", float("nan")),
+                "approval_rate": float((grp["p_success"] >= threshold).mean()),
+                "mean_trade_return": float(grp["trade_return"].mean()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def save_m2_deep_charts(
+    y_true: pd.Series,
+    y_prob: pd.Series,
+    calibration: pd.DataFrame,
+    decile_returns: pd.DataFrame,
+    feature_importance: pd.DataFrame,
+    m2_metrics: dict[str, Any],
+    figures_dir: Path,
+) -> list[str]:
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    saved: list[str] = []
+
+    mask = y_true.notna() & y_prob.notna()
+    y = y_true[mask].astype(int)
+    p = y_prob[mask]
+    if len(y) > 0 and y.nunique() >= 2:
+        fpr, tpr, _ = roc_curve(y, p)
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].plot(fpr, tpr, color="#4C72B0", label=f"AUC={m2_metrics.get('auc', float('nan')):.3f}")
+        axes[0].plot([0, 1], [0, 1], "k--", alpha=0.5, label="Random (0.50)")
+        axes[0].set_xlabel("False Positive Rate")
+        axes[0].set_ylabel("True Positive Rate")
+        axes[0].set_title("M2 ROC Curve (Test)")
+        axes[0].legend(fontsize=8)
+
+        if not calibration.empty:
+            axes[1].plot(calibration["mean_pred"], calibration["realized"], "o-", color="#55A868")
+            axes[1].plot([0, 1], [0, 1], "k--", alpha=0.5)
+            axes[1].set_xlabel("Mean Predicted P(success)")
+            axes[1].set_ylabel("Realized Success Rate")
+            axes[1].set_title("Calibration Reliability")
+        else:
+            axes[1].set_title("Calibration (insufficient buckets)")
+        p = figures_dir / "m2_roc_calibration.png"
+        fig.savefig(p, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        saved.append(p.name)
+
+    if not feature_importance.empty:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        top = feature_importance.head(15)
+        colors = ["#55A868" if c > 0 else "#C44E52" for c in top["coefficient"]]
+        ax.barh(top["feature"], top["coefficient"], color=colors)
+        ax.axvline(0, color="gray", linestyle="--")
+        ax.set_xlabel("Standardized coefficient")
+        ax.set_title("M2 Feature Importance (logistic regression)")
+        ax.invert_yaxis()
+        p = figures_dir / "m2_feature_importance.png"
+        fig.savefig(p, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        saved.append(p.name)
+
+    if not decile_returns.empty:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        x = range(len(decile_returns))
+        ax.bar(x, decile_returns["mean_trade_return"] * 100, color="#8172B3")
+        ax.axhline(0, color="gray", linestyle="--")
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([f"D{i+1}" for i in x], fontsize=8)
+        ax.set_ylabel("Mean trade return (%)")
+        ax.set_title("Realized Return by M2 Probability Decile")
+        p = figures_dir / "m2_decile_returns.png"
+        fig.savefig(p, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        saved.append(p.name)
+
+    return saved
+
+
+def run_m2_deep_diagnostics(
+    test_panel: pd.DataFrame,
+    m2_model: object | None,
+    cfg: PipelineConfig,
+    threshold: float,
+    output_dir: Path,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir = output_dir / "figures"
+    y_true = test_panel["meta_label"]
+    y_prob = test_panel["p_success"]
+
+    m2_metrics = m2_classification_metrics(y_true, y_prob, threshold=threshold)
+    calibration = m2_calibration_table(y_true, y_prob)
+    if not calibration.empty:
+        calibration.to_csv(output_dir / "m2_calibration_table.csv", index=False)
+
+    decile_returns = m2_probability_decile_returns(test_panel)
+    if not decile_returns.empty:
+        decile_returns.to_csv(output_dir / "m2_decile_returns.csv", index=False)
+
+    feature_importance = pd.DataFrame()
+    if m2_model is not None:
+        feature_importance = m2_feature_importance(m2_model, test_panel, cfg)
+        if not feature_importance.empty:
+            feature_importance.to_csv(output_dir / "m2_feature_importance.csv", index=False)
+
+    by_asset = m2_metrics_by_dimension(test_panel, "ticker", threshold)
+    if not by_asset.empty:
+        by_asset.to_csv(output_dir / "m2_metrics_by_asset.csv", index=False)
+
+    regime_dims = ["risk_off", "curve_inverted", "inflation_up", "growth_down"]
+    by_regime_frames = []
+    for dim in regime_dims:
+        if dim in test_panel.reset_index().columns:
+            by_regime_frames.append(m2_metrics_by_dimension(test_panel, dim, threshold))
+    by_regime = pd.concat(by_regime_frames, ignore_index=True) if by_regime_frames else pd.DataFrame()
+    if not by_regime.empty:
+        by_regime.to_csv(output_dir / "m2_metrics_by_regime.csv", index=False)
+
+    charts = save_m2_deep_charts(
+        y_true, y_prob, calibration, decile_returns, feature_importance, m2_metrics, figures_dir
+    )
+
+    return {
+        "m2_metrics": m2_metrics,
+        "calibration_table": calibration,
+        "decile_returns": decile_returns,
+        "feature_importance": feature_importance,
+        "metrics_by_asset": by_asset,
+        "metrics_by_regime": by_regime,
+        "charts": charts,
+    }
+
 
 
 def build_metrics_table(results: dict[str, BacktestResult]) -> pd.DataFrame:
@@ -825,15 +1064,17 @@ def save_figures(
         plt.close(fig)
         saved.append(str(p))
 
-    # 9. M2 calibration / ROC
+    # 9. M2 calibration / ROC (real curves when deep diagnostics ran; fallback title only)
     if m2_metrics and "auc" in m2_metrics:
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-        axes[0].set_title("ROC placeholder")
-        axes[1].set_title(f"AUC={m2_metrics.get('auc', 'n/a')}")
-        p = figures_dir / "m2_roc_calibration.png"
-        fig.savefig(p, dpi=120, bbox_inches="tight")
-        plt.close(fig)
-        saved.append(str(p))
+        mask = panel.reset_index()
+        if "meta_label" in mask.columns and "p_success" in mask.columns:
+            y_t = mask["meta_label"]
+            y_p = mask["p_success"]
+            cal = m2_calibration_table(y_t, y_p)
+            m = m2_classification_metrics(y_t, y_p)
+            if len(y_t.dropna()) > 0 and y_t.dropna().astype(int).nunique() >= 2:
+                save_m2_deep_charts(y_t, y_p, cal, pd.DataFrame(), pd.DataFrame(), m, figures_dir)
+                saved.append(str(figures_dir / "m2_roc_calibration.png"))
 
     # 10. IC time series
     if not ic_series.empty:
@@ -1013,21 +1254,26 @@ MODE_LABELS = {
 
 
 def _m2_metrics_table(m2_metrics: dict[str, Any]) -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {"Metric": "Accuracy", "Value": _fmt_num(m2_metrics.get("accuracy", float("nan"))), "Meaning": "Share of correct meta-label predictions"},
-            {"Metric": "Precision", "Value": _fmt_num(m2_metrics.get("precision", float("nan"))), "Meaning": "Approved trades that were actually profitable"},
-            {"Metric": "Recall", "Value": _fmt_num(m2_metrics.get("recall", float("nan"))), "Meaning": "Profitable trades that M2 approved"},
-            {"Metric": "F1 Score", "Value": _fmt_num(m2_metrics.get("f1", float("nan"))), "Meaning": "Balance of precision and recall"},
-            {"Metric": "AUC", "Value": _fmt_num(m2_metrics.get("auc", float("nan"))), "Meaning": "Ranking quality of M2 probabilities"},
-            {"Metric": "Brier Score", "Value": _fmt_num(m2_metrics.get("brier_score", float("nan"))), "Meaning": "Probability calibration error (lower is better)"},
-            {
-                "Metric": "Mean IC",
-                "Value": _fmt_num(m2_metrics.get("information_coefficient_mean", float("nan"))),
-                "Meaning": "Spearman rank correlation of M1 scores vs forward returns",
-            },
-        ]
-    )
+    rows = [
+        {"Metric": "Accuracy", "Value": _fmt_num(m2_metrics.get("accuracy", float("nan"))), "Meaning": "Share of correct meta-label predictions"},
+        {"Metric": "Precision", "Value": _fmt_num(m2_metrics.get("precision", float("nan"))), "Meaning": "Approved trades that were actually profitable"},
+        {"Metric": "Recall", "Value": _fmt_num(m2_metrics.get("recall", float("nan"))), "Meaning": "Profitable trades that M2 approved"},
+        {"Metric": "F1 Score", "Value": _fmt_num(m2_metrics.get("f1", float("nan"))), "Meaning": "Balance of precision and recall"},
+        {"Metric": "AUC-ROC", "Value": _fmt_num(m2_metrics.get("auc", float("nan"))), "Meaning": "Ranking quality: P(random winner scored higher than random loser)"},
+        {"Metric": "AUC-PR", "Value": _fmt_num(m2_metrics.get("auc_pr", float("nan"))), "Meaning": "Precision-recall AUC; more informative when base rate ≠ 50%"},
+        {"Metric": "Base Rate", "Value": _fmt_pct(m2_metrics.get("base_rate", float("nan"))), "Meaning": "Fraction of M1 trades that beat the cost hurdle"},
+        {"Metric": "Brier Score", "Value": _fmt_num(m2_metrics.get("brier_score", float("nan"))), "Meaning": "Probability calibration error (lower is better)"},
+        {"Metric": "Mean P (winners)", "Value": _fmt_num(m2_metrics.get("mean_p_winners", float("nan"))), "Meaning": "Average M2 probability on profitable trades"},
+        {"Metric": "Mean P (losers)", "Value": _fmt_num(m2_metrics.get("mean_p_losers", float("nan"))), "Meaning": "Average M2 probability on unprofitable trades"},
+        {
+            "Metric": "Mean IC",
+            "Value": _fmt_num(m2_metrics.get("information_coefficient_mean", float("nan"))),
+            "Meaning": "Spearman rank correlation of M1 scores vs forward returns",
+        },
+    ]
+    if m2_metrics.get("degeneracy_note"):
+        rows.append({"Metric": "Note", "Value": "—", "Meaning": m2_metrics["degeneracy_note"]})
+    return pd.DataFrame(rows)
 
 
 M1_SIGNAL_LABELS: dict[int, str] = {
@@ -1504,6 +1750,332 @@ def build_performance_parameters_section(cfg: PipelineConfig) -> list[str]:
     ]
 
 
+def _df_to_markdown_table(df: pd.DataFrame, float_fmt: str = ".4f") -> str:
+    if df.empty:
+        return "_No data._"
+    return _markdown_table(df)
+
+
+def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]:
+    """Executive summary bullets for final_report deep diagnostics section."""
+    long_mode = next((m for m in mode_results if m.mode_name == "long_only"), mode_results[0] if mode_results else None)
+    lines = [
+        "## Deep Diagnostics",
+        "",
+        "Companion reports provide factor-level, M2 input, regime, and AUC-ROC detail:",
+        "",
+        "- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests",
+        "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",
+        "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
+        "",
+    ]
+    if long_mode is None:
+        return lines
+
+    fs = getattr(long_mode, "factor_summary", None) or {}
+    rs = getattr(long_mode, "regime_summary", None) or {}
+    m2d = getattr(long_mode, "m2_deep_summary", None) or {}
+    factor_ic = fs.get("factor_ic", pd.DataFrame())
+    if not factor_ic.empty:
+        test_ic = factor_ic[(factor_ic["period"] == "test") & (factor_ic["factor"] != "M1_score")]
+        if not test_ic.empty:
+            best = test_ic.loc[test_ic["ic_mean"].idxmax()]
+            lines.append(
+                f"- **M1 factors (test):** strongest IC is `{best['factor']}` "
+                f"(mean IC {_fmt_num(best['ic_mean'])})."
+            )
+    m2m = m2d.get("m2_metrics") or getattr(long_mode, "m2_metrics", {})
+    if m2m:
+        auc = m2m.get("auc", float("nan"))
+        lines.append(
+            f"- **M2 AUC-ROC (test, long-only):** {_fmt_num(auc)} — weak ranking quality; "
+            "value is mainly in ECDF sizing, not binary filtering at 0.55."
+        )
+    perf = rs.get("performance_by_regime", pd.DataFrame())
+    if not perf.empty:
+        lines.append("- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.")
+    lines.append("")
+    return lines
+
+
+def generate_m1_factor_analysis_report(
+    factor_summary: dict[str, Any],
+    report_path: Path,
+    *,
+    cfg: PipelineConfig | None = None,
+    mode_name: str = "long_only",
+) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    w = cfg.m1.weights if cfg else {}
+    factor_ic = factor_summary.get("factor_ic", pd.DataFrame())
+    corr = factor_summary.get("factor_correlation", pd.DataFrame())
+    cov = factor_summary.get("factor_covariance", pd.DataFrame())
+    sleeves = factor_summary.get("factor_sleeves", pd.DataFrame())
+    ablation = factor_summary.get("factor_ablation", pd.DataFrame())
+    fig_prefix = f"../data/backtests/{mode_name}/figures"
+
+    lines = [
+        "# M1 Factor Analysis",
+        "",
+        "**Research use only — not investment advice.**",
+        "",
+        "## Factor Weights",
+        "",
+        f"M1 composite score uses momentum **{w.get('momentum', 0.45):.0%}**, trend **{w.get('trend', 0.25):.0%}**, "
+        f"macro **{w.get('macro', 0.20):.0%}**, risk penalty **{w.get('risk_penalty', 0.10):.0%}**.",
+        "",
+        "## Per-Factor Information Coefficient",
+        "",
+        "Spearman rank correlation of each component score vs 4-week forward return.",
+        "",
+    ]
+    if not factor_ic.empty:
+        display_ic = factor_ic.copy()
+        for col in ("ic_mean", "ic_std", "ic_hit_rate"):
+            if col in display_ic.columns:
+                display_ic[col] = display_ic[col].map(lambda x: _fmt_num(x))
+        lines.append(_markdown_table(display_ic))
+        lines.append("")
+        lines.append(f"![Factor IC]({fig_prefix}/m1_factor_ic.png)")
+        lines.append("")
+
+    lines.extend(["## Factor Correlation Matrix", ""])
+    if not corr.empty:
+        lines.append(_markdown_table(corr.round(4).reset_index().rename(columns={"index": "factor"})))
+        lines.append("")
+        lines.append(f"![Factor correlation]({fig_prefix}/m1_factor_correlation_heatmap.png)")
+        lines.append("")
+
+    lines.extend(["## Factor Covariance Matrix", ""])
+    if not cov.empty:
+        lines.append(_markdown_table(cov.round(6).reset_index().rename(columns={"index": "factor"})))
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Factor Sleeve Backtests",
+            "",
+            "Each row is a portfolio using only that factor family for top-K selection (risk penalty inverted).",
+            "",
+        ]
+    )
+    if not sleeves.empty:
+        disp = sleeves.copy()
+        for col in ("annualized_return", "max_drawdown"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(lambda x: _fmt_pct(x) if pd.notna(x) else "—")
+        if "sharpe" in disp.columns:
+            disp["sharpe"] = disp["sharpe"].map(lambda x: _fmt_num(x))
+        lines.append(_markdown_table(disp))
+        lines.append("")
+        lines.append(f"![Factor sleeves]({fig_prefix}/m1_factor_sleeves_cumulative.png)")
+        lines.append("")
+
+    lines.extend(["## Factor Ablation (zero one weight at a time)", ""])
+    if not ablation.empty:
+        disp = ablation.copy()
+        for col in ("annualized_return", "max_drawdown"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(lambda x: _fmt_pct(x))
+        if "sharpe" in disp.columns:
+            disp["sharpe"] = disp["sharpe"].map(lambda x: _fmt_num(x))
+        lines.append(_markdown_table(disp))
+        lines.append("")
+
+    interaction = sleeves[sleeves["sleeve"] == "interaction"] if not sleeves.empty else pd.DataFrame()
+    if not interaction.empty and "interaction_excess_ann" in interaction.columns:
+        val = interaction.iloc[0]["interaction_excess_ann"]
+        lines.extend(
+            [
+                "## Interaction Term",
+                "",
+                f"Combined M1 excess minus sum of standalone factor sleeves: **{_fmt_pct(val)}** annualized. "
+                "Positive values suggest factors reinforce; negative suggests overlap.",
+                "",
+            ]
+        )
+    report_path.write_text("\n".join(lines))
+
+
+def generate_m2_diagnostics_report(
+    m2_deep_summary: dict[str, Any],
+    m2_metrics: dict[str, Any],
+    report_path: Path,
+    *,
+    mode_name: str = "long_only",
+    threshold: float = 0.55,
+) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    fig_prefix = f"../data/backtests/{mode_name}/figures"
+    metrics = {**m2_metrics, **(m2_deep_summary.get("m2_metrics") or {})}
+    calibration = m2_deep_summary.get("calibration_table", pd.DataFrame())
+    deciles = m2_deep_summary.get("decile_returns", pd.DataFrame())
+    importance = m2_deep_summary.get("feature_importance", pd.DataFrame())
+    by_asset = m2_deep_summary.get("metrics_by_asset", pd.DataFrame())
+    by_regime = m2_deep_summary.get("metrics_by_regime", pd.DataFrame())
+
+    auc = metrics.get("auc", float("nan"))
+    base = metrics.get("base_rate", float("nan"))
+    lines = [
+        "# M2 Diagnostics & AUC-ROC Guide",
+        "",
+        "**Research use only — not investment advice.**",
+        "",
+        "## Classifier Metrics (Test Set)",
+        "",
+        _markdown_table(_m2_metrics_table(metrics)),
+        "",
+        "## Understanding AUC-ROC",
+        "",
+        "AUC-ROC measures **ranking quality**, not accuracy. If you randomly pick one winning trade and one losing trade, "
+        f"AUC is the probability M2 assigns a higher `P(success)` to the winner. At **{_fmt_num(auc)}**, discrimination is "
+        "only slightly above random (0.50).",
+        "",
+        "| AUC | Interpretation |",
+        "| --- | --- |",
+        "| 0.50 | Random ranking — no discrimination |",
+        "| 0.55–0.60 | Weak but common for noisy financial labels |",
+        "| 0.70+ | Moderate discrimination |",
+        "",
+        f"**Base rate** (fraction of profitable M1 trades): {_fmt_pct(base)}. When base rate ≠ 50%, **AUC-PR** "
+        f"({_fmt_num(metrics.get('auc_pr', float('nan')))}) is often more informative than AUC-ROC.",
+        "",
+        "- **AUC vs Brier:** Brier scores calibration (predicted vs realized); AUC scores ranking. A model can be "
+        "calibrated but still rank poorly.",
+        "- **AUC vs precision/recall:** AUC is threshold-independent. At threshold "
+        f"**{threshold}**, recall={_fmt_num(metrics.get('recall', float('nan')))} — "
+        "if recall ≈ 1.0, binary M2 approves all trades and adds no filter.",
+        "- **Economic role:** M2 value in this pipeline is mainly **ECDF sizing** (risk shaping), not rejecting trades.",
+        "",
+        f"![ROC and calibration]({fig_prefix}/m2_roc_calibration.png)",
+        "",
+        "## Calibration by Probability Bucket",
+        "",
+    ]
+    if not calibration.empty:
+        cal_disp = calibration.copy()
+        cal_disp["mean_pred"] = cal_disp["mean_pred"].map(lambda x: _fmt_num(x))
+        cal_disp["realized"] = cal_disp["realized"].map(lambda x: _fmt_pct(x))
+        lines.append(_markdown_table(cal_disp))
+    else:
+        lines.append("_Insufficient data for calibration buckets._")
+    lines.extend(["", "## Economic View: Return by Probability Decile", ""])
+    if not deciles.empty:
+        d_disp = deciles.copy()
+        d_disp["mean_p_success"] = d_disp["mean_p_success"].map(lambda x: _fmt_num(x))
+        d_disp["mean_trade_return"] = d_disp["mean_trade_return"].map(lambda x: _fmt_pct(x))
+        d_disp["hit_rate"] = d_disp["hit_rate"].map(lambda x: _fmt_pct(x))
+        lines.append(_markdown_table(d_disp))
+        lines.append("")
+        lines.append(f"![Decile returns]({fig_prefix}/m2_decile_returns.png)")
+    lines.extend(["", "## Feature Importance (Top 15)", ""])
+    if not importance.empty:
+        imp_disp = importance.copy()
+        imp_disp["coefficient"] = imp_disp["coefficient"].map(lambda x: _fmt_num(x, 4))
+        lines.append(_markdown_table(imp_disp[["feature", "coefficient"]]))
+        lines.append("")
+        lines.append(f"![Feature importance]({fig_prefix}/m2_feature_importance.png)")
+    lines.extend(["", "## Metrics by Asset", ""])
+    if not by_asset.empty:
+        lines.append(_markdown_table(by_asset.round(4)))
+    lines.extend(["", "## Metrics by Regime Flag", ""])
+    if not by_regime.empty:
+        lines.append(_markdown_table(by_regime.round(4)))
+    lines.append("")
+    report_path.write_text("\n".join(lines))
+
+
+def generate_market_regime_report(
+    regime_summary: dict[str, Any],
+    report_path: Path,
+    *,
+    mode_name: str = "long_only",
+) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    fig_prefix = f"../data/backtests/{mode_name}/figures"
+    transitions = regime_summary.get("regime_transitions", pd.DataFrame())
+    perf = regime_summary.get("performance_by_regime", pd.DataFrame())
+    ic_regime = regime_summary.get("m1_ic_by_regime", pd.DataFrame())
+    auc_regime = regime_summary.get("m2_auc_by_regime", pd.DataFrame())
+    context = regime_summary.get("regime_market_context", pd.DataFrame())
+
+    lines = [
+        "# Market & Regime Analysis",
+        "",
+        "**Research use only — not investment advice.**",
+        "",
+        "## Regime Feature Definitions",
+        "",
+        "| Flag / Series | Definition |",
+        "| --- | --- |",
+        "| `risk_off` | VIX above its 75th percentile (156-week rolling) |",
+        "| `curve_inverted` | 10Y–2Y Treasury spread < 0 |",
+        "| `inflation_up` | CPI YoY above its 156-week median |",
+        "| `growth_down` | Industrial production YoY below its 156-week median |",
+        "| `vix_level`, `credit_stress`, `yield_curve` | Continuous macro/risk levels (lagged) |",
+        "",
+        f"![Regime timeline]({fig_prefix}/regime_timeline.png)",
+        "",
+        f"![VIX and flags]({fig_prefix}/vix_and_flags.png)",
+        "",
+        "## Regime Transitions",
+        "",
+    ]
+    if not transitions.empty:
+        lines.append(_markdown_table(transitions.round(2)))
+    lines.extend(["", "## Strategy Performance by Regime", ""])
+    if not perf.empty:
+        p_disp = perf.copy()
+        p_disp["annualized_return"] = p_disp["annualized_return"].map(lambda x: _fmt_pct(x))
+        p_disp["sharpe"] = p_disp["sharpe"].map(lambda x: _fmt_num(x))
+        p_disp["hit_rate"] = p_disp["hit_rate"].map(lambda x: _fmt_pct(x))
+        lines.append(_markdown_table(p_disp))
+        lines.append("")
+        lines.append(f"![Performance heatmap]({fig_prefix}/performance_by_regime_heatmap.png)")
+    lines.extend(["", "## M1 IC by Regime (Test)", ""])
+    if not ic_regime.empty:
+        lines.append(_markdown_table(ic_regime.round(4)))
+    lines.extend(["", "## M2 AUC by Regime (Test)", ""])
+    if not auc_regime.empty:
+        lines.append(_markdown_table(auc_regime.round(4)))
+    lines.extend(["", "## Train vs Test Macro Context", ""])
+    if not context.empty:
+        lines.append(_markdown_table(context.round(4)))
+    lines.append("")
+    report_path.write_text("\n".join(lines))
+
+
+def generate_companion_reports(
+    mode_results: list[Any],
+    reports_root: Path,
+    *,
+    cfg: PipelineConfig | None = None,
+) -> None:
+    """Write companion markdown reports from long_only mode diagnostics."""
+    long_mode = next((m for m in mode_results if m.mode_name == "long_only"), None)
+    if long_mode is None:
+        return
+    fs = getattr(long_mode, "factor_summary", None) or {}
+    rs = getattr(long_mode, "regime_summary", None) or {}
+    m2d = getattr(long_mode, "m2_deep_summary", None) or {}
+    threshold = cfg.m2.threshold if cfg else 0.55
+
+    if fs:
+        generate_m1_factor_analysis_report(
+            fs, reports_root / "m1_factor_analysis.md", cfg=cfg, mode_name="long_only"
+        )
+    if m2d or long_mode.m2_metrics:
+        generate_m2_diagnostics_report(
+            m2d,
+            long_mode.m2_metrics,
+            reports_root / "m2_diagnostics.md",
+            mode_name="long_only",
+            threshold=threshold,
+        )
+    if rs:
+        generate_market_regime_report(rs, reports_root / "market_regime_analysis.md", mode_name="long_only")
+
+
 def generate_dual_mode_report(
     mode_results: list[Any],
     report_path: Path,
@@ -1708,6 +2280,11 @@ def generate_dual_mode_report(
             "| **Info Ratio** | Consistency of outperformance vs equal-weight |",
             "| **Weekly Hit Rate** | Fraction of weeks with positive net strategy return |",
             "",
+        ]
+    )
+    lines.extend(build_deep_diagnostics_summary_section(mode_results))
+    lines.extend(
+        [
             "## Key Takeaways",
             "",
             "1. **Long-only M1** avoids short exposure, which often hurts in upward-trending ETF samples.",
@@ -1747,6 +2324,8 @@ def run_diagnostics(
     cfg: PipelineConfig | None = None,
     returns_wide: pd.DataFrame | None = None,
     train_panel: pd.DataFrame | None = None,
+    m1_model: object | None = None,
+    m2_model: object | None = None,
 ) -> dict[str, Any]:
     metrics_table = build_metrics_table(results)
     metrics_table.to_csv(output_dir / "metrics_table.csv", index=False)
@@ -1764,6 +2343,44 @@ def run_diagnostics(
     )
     if not ic.empty:
         m2_metrics["information_coefficient_mean"] = ic_mean
+
+    factor_summary: dict[str, Any] = {}
+    regime_summary: dict[str, Any] = {}
+    m2_deep_summary: dict[str, Any] = {}
+    if cfg is not None and returns_wide is not None and train_panel is not None:
+        from src.factor_analysis import run_factor_analysis
+        from src.feature_engineering import get_feature_columns
+        from src.regime_analysis import run_regime_analysis
+
+        feature_cols = get_feature_columns(panel.reset_index())
+        factor_summary = run_factor_analysis(
+            panel,
+            train_panel,
+            test_panel,
+            returns_wide,
+            cfg,
+            output_dir,
+            m1_model=m1_model,
+            feature_cols=feature_cols,
+        )
+        regime_summary = run_regime_analysis(
+            panel,
+            train_panel,
+            test_panel,
+            results,
+            output_dir,
+            cfg_train_end=cfg.split.train_end,
+            cfg_test_start=cfg.split.test_start,
+            m2_threshold=cfg_threshold,
+        )
+        if m2_model is not None:
+            m2_deep_summary = run_m2_deep_diagnostics(
+                test_panel, m2_model, cfg, cfg_threshold, output_dir
+            )
+            if m2_deep_summary.get("m2_metrics"):
+                m2_metrics.update(
+                    {k: v for k, v in m2_deep_summary["m2_metrics"].items() if k not in m2_metrics}
+                )
 
     m1_signal_analysis = analyze_m1_signal_m2_performance(
         test_panel, cfg_threshold, period_label="test"
@@ -1804,6 +2421,9 @@ def run_diagnostics(
         "threshold_sensitivity": threshold_sensitivity,
         "exposure_chart": exposure_chart,
         "sens_chart": sens_chart,
+        "factor_summary": factor_summary,
+        "regime_summary": regime_summary,
+        "m2_deep_summary": m2_deep_summary,
     }
     json_summary = {
         **summary,
