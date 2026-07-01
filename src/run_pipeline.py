@@ -38,6 +38,7 @@ from src.feature_engineering import build_features, get_feature_columns, save_mo
 from src.labels import add_forward_returns, build_m1_target, build_meta_labels
 from src.model_m1 import build_m1_model, split_train_test
 from src.model_m2 import fit_m2, predict_m2
+from src.model_m3 import attach_m3_to_panel
 from src.research_logger import ResearchLogger
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -75,13 +76,14 @@ class ModeRunResult:
     factor_summary: dict | None = None
     regime_summary: dict | None = None
     m2_deep_summary: dict | None = None
+    m3_summary: dict | None = None
 
 
 def _cleanup_stale_reports_root(reports_root: Path) -> None:
     """Remove legacy entries from reports/ root; only final_report.md and subdirs may remain."""
     if not reports_root.exists():
         return
-    allowed = {"final_report.md", "final", "mode_comparison", "assets"}
+    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md"}
     for path in list(reports_root.iterdir()):
         if path.name in allowed:
             continue
@@ -147,6 +149,10 @@ def run_m1_mode(
     m2_model, _ = fit_m2(panel, mode_cfg)
     panel = predict_m2(m2_model, panel, mode_cfg)
 
+    train, test = split_train_test(panel, mode_cfg)
+    train_proba = train.loc[train["M1_signal"] != 0, "p_success"]
+    panel = attach_m3_to_panel(panel, mode_cfg, train_proba=train_proba)
+
     predictions_dir = root / mode_cfg.paths.predictions / mode_name
     predictions_dir.mkdir(parents=True, exist_ok=True)
     panel.reset_index().to_parquet(predictions_dir / "panel_with_predictions.parquet", index=False)
@@ -207,6 +213,7 @@ def run_m1_mode(
         factor_summary=diag_summary.get("factor_summary"),
         regime_summary=diag_summary.get("regime_summary"),
         m2_deep_summary=diag_summary.get("m2_deep_summary"),
+        m3_summary=diag_summary.get("m3_summary"),
     )
 
 

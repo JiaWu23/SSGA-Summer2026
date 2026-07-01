@@ -32,8 +32,8 @@ AUC-ROC measures **ranking quality**, not accuracy. If you randomly pick one win
 **Base rate** (fraction of profitable M1 trades): 58.9474%. When base rate ≠ 50%, **AUC-PR** (0.6652) is often more informative than AUC-ROC.
 
 - **AUC vs Brier:** Brier scores calibration (predicted vs realized); AUC scores ranking. A model can be calibrated but still rank poorly.
-- **AUC vs precision/recall:** AUC is threshold-independent. At threshold **0.55**, recall=1.0000 — if recall ≈ 1.0, binary M2 approves all trades and adds no filter.
-- **Economic role:** M2 value in this pipeline is mainly **ECDF sizing** (risk shaping), not rejecting trades.
+- **AUC vs precision/recall:** AUC is threshold-independent. At threshold **0.55**, recall=1.0000 — if recall ≈ 1.0, binary M3 at that threshold approves all trades and adds no filter.
+- **Economic role:** M2 outputs probabilities only; **M3** converts them to bet fractions. Threshold approval at 0.55 is an M3 binary sizing rule, not M2 classification output.
 
 ![ROC and calibration](../data/backtests/long_only/figures/m2_roc_calibration.png)
 

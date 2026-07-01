@@ -100,6 +100,14 @@ class M2Config:
 
 
 @dataclass
+class M3Config:
+    """Bet-sizing rule (Joubert M3): maps M2 probability to position fraction."""
+
+    mode: str = "linear"
+    threshold: float | None = None
+
+
+@dataclass
 class PortfolioConfig:
     allow_short: bool = True
     max_abs_asset_weight: float = 0.25
@@ -153,6 +161,13 @@ class PipelineConfig:
     def m2(self) -> M2Config:
         m2 = self.models.get("m2", {})
         return M2Config(**m2) if isinstance(m2, dict) else m2
+
+    @property
+    def m3(self) -> M3Config:
+        m3 = self.models.get("m3", {})
+        if isinstance(m3, dict) and m3:
+            return M3Config(**m3)
+        return M3Config(mode=self.portfolio.sizing_mode, threshold=self.m2.threshold)
 
     def path(self, key: str, base_dir: Path | None = None) -> Path:
         root = base_dir or Path.cwd()

@@ -31,24 +31,31 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | risk_off | on | equal_weight_1_7 | 274 | 13.5859% | 0.7131 | 59.1241% |
 | risk_off | on | m1_only | 274 | 11.5749% | 0.9341 | 62.4088% |
+| risk_off | on | m1_m2_m3_ecdf | 274 | 9.1560% | 1.1012 | 63.1387% |
 | risk_off | on | m1_m2_ecdf | 274 | 9.1560% | 1.1012 | 63.1387% |
 | risk_off | off | equal_weight_1_7 | 712 | 5.0594% | 0.5313 | 54.7753% |
 | risk_off | off | m1_only | 712 | 5.7260% | 0.5987 | 57.4438% |
+| risk_off | off | m1_m2_m3_ecdf | 712 | 5.2228% | 0.8403 | 58.1461% |
 | risk_off | off | m1_m2_ecdf | 712 | 5.2228% | 0.8403 | 58.1461% |
 | curve_inverted | off | equal_weight_1_7 | 986 | 7.3625% | 0.5708 | 55.9838% |
 | curve_inverted | off | m1_only | 986 | 7.3198% | 0.7021 | 58.8235% |
+| curve_inverted | off | m1_m2_m3_ecdf | 986 | 6.3013% | 0.9181 | 59.5335% |
 | curve_inverted | off | m1_m2_ecdf | 986 | 6.3013% | 0.9181 | 59.5335% |
 | inflation_up | on | equal_weight_1_7 | 403 | -6.8536% | -0.4854 | 51.8610% |
 | inflation_up | on | m1_only | 403 | 0.1800% | 0.0163 | 56.3275% |
+| inflation_up | on | m1_m2_m3_ecdf | 403 | 1.3562% | 0.2031 | 58.0645% |
 | inflation_up | on | m1_m2_ecdf | 403 | 1.3562% | 0.2031 | 58.0645% |
 | inflation_up | off | equal_weight_1_7 | 583 | 18.4386% | 1.5615 | 58.8336% |
 | inflation_up | off | m1_only | 583 | 12.5506% | 1.2628 | 60.5489% |
+| inflation_up | off | m1_m2_m3_ecdf | 583 | 9.8600% | 1.4171 | 60.5489% |
 | inflation_up | off | m1_m2_ecdf | 583 | 9.8600% | 1.4171 | 60.5489% |
 | growth_down | on | equal_weight_1_7 | 519 | 5.8179% | 0.3946 | 54.3353% |
 | growth_down | on | m1_only | 519 | 5.1731% | 0.4768 | 57.0328% |
+| growth_down | on | m1_m2_m3_ecdf | 519 | 5.0135% | 0.7139 | 57.9961% |
 | growth_down | on | m1_m2_ecdf | 519 | 5.0135% | 0.7139 | 57.9961% |
 | growth_down | off | equal_weight_1_7 | 467 | 9.1055% | 0.8684 | 57.8158% |
 | growth_down | off | m1_only | 467 | 9.7571% | 0.9818 | 60.8137% |
+| growth_down | off | m1_m2_m3_ecdf | 467 | 7.7512% | 1.1595 | 61.2420% |
 | growth_down | off | m1_m2_ecdf | 467 | 7.7512% | 1.1595 | 61.2420% |
 
 ![Performance heatmap](../data/backtests/long_only/figures/performance_by_regime_heatmap.png)

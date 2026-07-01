@@ -49,8 +49,17 @@ def test_full_pipeline_smoke(tmp_path):
     assert (tmp_path / "reports" / "m1_factor_analysis.md").exists()
     assert (tmp_path / "reports" / "m2_diagnostics.md").exists()
     assert (tmp_path / "reports" / "market_regime_analysis.md").exists()
+    assert (tmp_path / "reports" / "m3_allocation_analysis.md").exists()
     assert (tmp_path / "data" / "backtests" / "long_only" / "m1_factor_ic.csv").exists()
     assert (tmp_path / "data" / "backtests" / "long_only" / "m2_calibration_table.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m3_allocation_summary.csv").exists()
+    pred = tmp_path / "data" / "predictions" / "long_only" / "panel_with_predictions.parquet"
+    assert pred.exists()
+    import pandas as pd
+
+    panel = pd.read_parquet(pred)
+    assert "M3_size" in panel.columns
+    assert "allocation_state" in panel.columns
     assert (tmp_path / "reports" / "mode_comparison" / "m1_mode_comparison.png").exists()
     assert (tmp_path / "reports" / "final" / "long_only" / "strategy_cumulative_returns.png").exists()
     assert (tmp_path / "reports" / "assets" / "asset_component_analysis.md").exists()

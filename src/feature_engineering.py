@@ -254,6 +254,11 @@ def get_feature_columns(panel: pd.DataFrame, exclude_labels: bool = True) -> lis
         "M1_conviction",
         "p_success",
         "predicted_meta_label",
+        "M3_size",
+        "M3_size_binary",
+        "M3_size_linear",
+        "M3_size_ecdf",
+        "allocation_state",
     }
     if exclude_labels:
         exclude |= LABEL_COLUMNS

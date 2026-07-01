@@ -157,49 +157,60 @@ Important: fit calibrator using training/validation data only, not test data.
 
 ---
 
-## Position Sizing
+## M3 Bet Sizing (Joubert M3 layer)
+
+M2 outputs `p_success`. **M3** maps that probability to a bet fraction `M3_size` ∈ [0, 1]. This is not a classifier—binary thresholding is an all-or-nothing M3 rule.
+
+Reference: Joubert (2022), *Journal of Financial Data Science*, Exhibit 2 (M3 bet-sizing algorithm).
 
 ### Size Inputs
 
 ```text
-M1_signal ∈ {-1, 1}
-p_success ∈ [0, 1]
+M1_signal ∈ {-1, 0, 1}
+p_success ∈ [0, 1]   # M2 output
+M3_size ∈ [0, 1]     # M3 output
 base_risk_budget per asset
-risk constraints
+portfolio risk constraints (post-M3)
 ```
 
-### Method 1: Binary Filter
+### Method 1: Binary M3 (threshold T)
 
 ```text
 if p_success >= threshold:
-    size = 1
+    M3_size = 1
 else:
-    size = 0
+    M3_size = 0
 ```
 
-### Method 2: Linear Probability Sizing
+### Method 2: Linear M3
 
 ```text
-size = max(0, 2 * p_success - 1)
+M3_size = max(0, 2 * p_success - 1)
 ```
 
 This means:
 
 ```text
-p = 0.50 -> size = 0.00
-p = 0.75 -> size = 0.50
-p = 1.00 -> size = 1.00
+p = 0.50 -> M3_size = 0.00
+p = 0.75 -> M3_size = 0.50
+p = 1.00 -> M3_size = 1.00
 ```
 
-### Method 3: ECDF / Rank-Based Sizing
+### Method 3: ECDF M3
 
 Fit the empirical distribution of M2 probabilities on training data.
 
 ```text
-size_t = percentile_rank_train_distribution(p_success_t)
+M3_size_t = percentile_rank_train_distribution(p_success_t)
 ```
 
-This maps high-confidence signals to larger sizes based on historical model confidence.
+### Allocation states (interpretation)
+
+```text
+M1 = 0              -> no_signal   (no buy candidate)
+M1 ≠ 0, M3_size = 0 -> m3_zero     (candidate rejected by M3 rule)
+M1 ≠ 0, M3_size > 0 -> m3_active   (positive bet fraction)
+```
 
 ---
 
@@ -208,7 +219,7 @@ This maps high-confidence signals to larger sizes based on historical model conf
 Raw signed asset weight:
 
 ```text
-raw_weight_asset_t = M1_signal_asset_t * size_asset_t * base_budget_asset_t
+raw_weight_asset_t = M1_signal_asset_t * M3_size_asset_t * base_budget_asset_t
 ```
 
 Default base budget:

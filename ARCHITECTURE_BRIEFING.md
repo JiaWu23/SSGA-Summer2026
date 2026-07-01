@@ -26,14 +26,14 @@ flowchart TB
     FE[Momentum, trend, vol, macro lags]
   end
 
-  subgraph models [Two-Stage Models]
+  subgraph models [M1 / M2 / M3 Stack]
     M1[M1: side signal -1, 0, +1]
     M2[M2: P trade is profitable]
+    M3[M3: bet fraction 0 to 1]
   end
 
-  subgraph portfolio [Portfolio]
-    SIZE[Position sizing]
-    RISK[Risk constraints]
+  subgraph portfolio [Portfolio Layer]
+    RISK[Risk constraints and vol target]
   end
 
   subgraph eval [Evaluation]
@@ -47,8 +47,8 @@ flowchart TB
   VIX --> FE
   FE --> M1
   M1 --> M2
-  M2 --> SIZE
-  SIZE --> RISK
+  M2 --> M3
+  M3 --> RISK
   RISK --> BT
   BT --> BENCH
   BT --> RPT
@@ -64,11 +64,12 @@ flowchart TB
 | Layer | Question it answers | Output |
 |--------|---------------------|--------|
 | **M1** | Which side? | `+1` long, `-1` short, `0` flat per asset-week |
-| **M2** | Is this M1 trade likely to pay? | `P(success)` — meta-label |
-| **Sizing** | How much capital? | Scale weight by probability; apply caps |
+| **M2** | Is this M1 trade likely to pay? | `P(success)` — meta-label probability |
+| **M3** | How much to bet? | `M3_size` ∈ [0, 1] — bet fraction before portfolio caps |
+| **Portfolio** | Risk budget enforcement | Final weights after caps and vol target |
 
-**Why split M1 and M2?**  
-In production quant shops, combining “direction” and “size” in one model often blurs signal quality. Meta-labeling lets M1 cast a wide net (opportunities) while M2 focuses on **false-positive control** and **capital efficiency**—a familiar split from systematic PM literature (e.g. López de Prado).
+**Why split M1, M2, and M3?**  
+Per Joubert (2022) and López de Prado, side (M1), trade quality probability (M2), and bet sizing (M3) are separate decisions. M2 is a classifier; M3 is a deterministic sizing rule (threshold, linear, or ECDF)—not another classifier.
 
 ---
 

@@ -108,7 +108,7 @@ def performance_by_regime(
 ) -> pd.DataFrame:
     """Strategy metrics when each binary regime flag is on vs off."""
     rows = []
-    strategy_keys = [k for k in results if k in ("m1_only", "m1_m2_ecdf", "equal_weight_1_7")]
+    strategy_keys = [k for k in results if k in ("m1_only", "m1_m2_m3_ecdf", "m1_m2_ecdf", "equal_weight_1_7")]
     for flag in REGIME_FLAG_COLS:
         if flag not in timeline.columns:
             continue

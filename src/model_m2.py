@@ -32,6 +32,7 @@ class M2Model(ABC):
         ...
 
     def predict_meta_label(self, X: pd.DataFrame, threshold: float = 0.5) -> pd.Series:
+        """Diagnostic M3 preview: binary threshold on p_success (not an M2 model output)."""
         proba = self.predict_proba(X)
         return (proba >= threshold).astype(int).rename("predicted_meta_label")
 

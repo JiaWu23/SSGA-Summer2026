@@ -78,6 +78,9 @@ models:
     type: logistic_regression
     threshold: 0.55
     calibrate: true
+  m3:
+    mode: linear
+    threshold: 0.55
 
 portfolio:
   allow_short: true

@@ -25,7 +25,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from src.backtest import BacktestResult
+from src.backtest import BacktestResult, METRICS_TABLE_STRATEGIES
 from src.config import PipelineConfig
 
 logger = logging.getLogger(__name__)
@@ -636,7 +636,10 @@ def run_m2_deep_diagnostics(
 def build_metrics_table(results: dict[str, BacktestResult]) -> pd.DataFrame:
     bench = results.get("equal_weight_1_7")
     rows = []
-    for name, res in results.items():
+    for name in METRICS_TABLE_STRATEGIES:
+        res = results.get(name)
+        if res is None:
+            continue
         row = {"strategy": name, **strategy_metrics(res, bench)}
         rows.append(row)
     return pd.DataFrame(rows)
@@ -660,7 +663,10 @@ def build_metrics_table_on_period(
             bench_returns = bench_returns[bench_returns.index <= pd.Timestamp(end)]
 
     rows = []
-    for name, res in results.items():
+    for name in METRICS_TABLE_STRATEGIES:
+        res = results.get(name)
+        if res is None:
+            continue
         row = {"strategy": name, **strategy_metrics_on_period(res.returns, start=start, end=end)}
         if bench_returns is not None:
             r = res.returns.copy()
@@ -679,17 +685,21 @@ STRATEGY_LABELS: dict[str, str] = {
     "equal_weight_1_7": "Equal Weight (1/7)",
     "sixty_forty": "60/40 Benchmark",
     "m1_only": "M1 Only",
-    "m1_m2_binary": "M1 + M2 (Binary)",
-    "m1_m2_linear": "M1 + M2 (Linear)",
-    "m1_m2_ecdf": "M1 + M2 (ECDF)",
+    "m1_m2_m3_binary": "M1 + M2 + M3 (Binary threshold)",
+    "m1_m2_m3_linear": "M1 + M2 + M3 (Linear)",
+    "m1_m2_m3_ecdf": "M1 + M2 + M3 (ECDF)",
+    "m1_m2_passthrough": "M1 + M2 + M3 (Passthrough diagnostic)",
+    "m1_m2_binary": "M1 + M2 + M3 (Binary threshold)",
+    "m1_m2_linear": "M1 + M2 + M3 (Linear)",
+    "m1_m2_ecdf": "M1 + M2 + M3 (ECDF)",
 }
 
 REPORT_CHART_STRATEGIES = [
     "equal_weight_1_7",
     "sixty_forty",
     "m1_only",
-    "m1_m2_linear",
-    "m1_m2_ecdf",
+    "m1_m2_m3_linear",
+    "m1_m2_m3_ecdf",
 ]
 
 
@@ -743,7 +753,11 @@ def _build_executive_summary(metrics_table: pd.DataFrame, m2_metrics: dict[str, 
     raw = metrics_table.set_index("strategy")
     ew = raw.loc["equal_weight_1_7"] if "equal_weight_1_7" in raw.index else None
     m1 = raw.loc["m1_only"] if "m1_only" in raw.index else None
-    m2_linear = raw.loc["m1_m2_linear"] if "m1_m2_linear" in raw.index else None
+    m2_linear = None
+    if "m1_m2_m3_linear" in raw.index:
+        m2_linear = raw.loc["m1_m2_m3_linear"]
+    elif "m1_m2_linear" in raw.index:
+        m2_linear = raw.loc["m1_m2_linear"]
 
     lines = [
         "This report compares a **meta-labeling pipeline** against standard benchmarks on seven global ETFs "
@@ -767,7 +781,7 @@ def _build_executive_summary(metrics_table: pd.DataFrame, m2_metrics: dict[str, 
     if m2_linear is not None and m1 is not None:
         vol_drop = m1["annualized_volatility"] - m2_linear["annualized_volatility"]
         lines.append(
-            f"- **M1 + M2 (linear sizing)** improved risk-adjusted metrics: Sharpe {_fmt_num(m2_linear['sharpe'])} "
+            f"- **M1 + M2 + M3 (linear sizing)** improved risk-adjusted metrics: Sharpe {_fmt_num(m2_linear['sharpe'])} "
             f"vs {_fmt_num(m1['sharpe'])} for M1-only, with max drawdown {_fmt_pct(m2_linear['max_drawdown'])}. "
             "Much of the improvement comes from **lower exposure**, not higher raw returns."
         )
@@ -813,6 +827,8 @@ def save_report_charts(
         "equal_weight_1_7": "#4C72B0",
         "sixty_forty": "#55A868",
         "m1_only": "#C44E52",
+        "m1_m2_m3_linear": "#8172B3",
+        "m1_m2_m3_ecdf": "#CCB974",
         "m1_m2_linear": "#8172B3",
         "m1_m2_ecdf": "#CCB974",
     }
@@ -1027,7 +1043,9 @@ def save_figures(
     saved.append(str(p))
 
     # 6. Asset weights (m1_m2_linear if present)
-    key = "m1_m2_linear" if "m1_m2_linear" in results else next(iter(results))
+    key = "m1_m2_m3_linear" if "m1_m2_m3_linear" in results else (
+        "m1_m2_linear" if "m1_m2_linear" in results else next(iter(results))
+    )
     w = results[key].weights
     fig, ax = plt.subplots(figsize=(10, 5))
     for col in w.columns:
@@ -1735,7 +1753,9 @@ def build_performance_parameters_section(cfg: PipelineConfig) -> list[str]:
         f"| `portfolio.transaction_cost_bps` | {cfg.portfolio.transaction_cost_bps} | Round-trip cost per unit turnover; higher values drag net returns |",
         f"| `portfolio.max_gross_exposure` | {cfg.portfolio.max_gross_exposure} | Cap on sum of absolute weights |",
         f"| `portfolio.max_abs_asset_weight` | {cfg.portfolio.max_abs_asset_weight} | Per-asset weight ceiling |",
-        f"| `portfolio.sizing_mode` | {cfg.portfolio.sizing_mode} | How M2 probability maps to position size (binary / linear / ecdf) |",
+        f"| `portfolio.sizing_mode` | {cfg.portfolio.sizing_mode} | Default M3 bet-sizing rule (binary / linear / ecdf) |",
+        f"| `models.m3.mode` | {cfg.m3.mode} | M3 sizing rule applied to M2 probabilities (Joubert bet-sizing layer) |",
+        f"| `models.m3.threshold` | {cfg.m3.threshold or cfg.m2.threshold} | M3 binary threshold T (all-or-nothing sizing only) |",
         f"| `portfolio.vol_target_ann` | {cfg.portfolio.vol_target_ann} | Annualized vol target for gross scaling (null disables) |",
         f"| `portfolio.vol_target_lookback_weeks` | {cfg.portfolio.vol_target_lookback_weeks} | Trailing window for realized vol estimate |",
         "",
@@ -1767,6 +1787,7 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         "- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests",
         "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",
         "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
+        "- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules",
         "",
     ]
     if long_mode is None:
@@ -1789,13 +1810,94 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         auc = m2m.get("auc", float("nan"))
         lines.append(
             f"- **M2 AUC-ROC (test, long-only):** {_fmt_num(auc)} — weak ranking quality; "
-            "value is mainly in ECDF sizing, not binary filtering at 0.55."
+            "value is mainly in M3 ECDF sizing, not M3 binary threshold at 0.55."
         )
     perf = rs.get("performance_by_regime", pd.DataFrame())
     if not perf.empty:
         lines.append("- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.")
+    m3d = getattr(long_mode, "m3_summary", None) or {}
+    if m3d.get("allocation_summary") is not None and not m3d["allocation_summary"].empty:
+        test_alloc = m3d["allocation_summary"]
+        if "period" in test_alloc.columns:
+            test_alloc = test_alloc[test_alloc["period"] == "test"]
+        active = test_alloc[test_alloc["allocation_state"] == "m3_active"]
+        if not active.empty:
+            lines.append(
+                f"- **M3 allocation (test):** {_fmt_pct(active.iloc[0]['share'])} of asset-weeks are "
+                "M1 candidates with M3_size > 0 (active bets before portfolio constraints)."
+            )
+    lines.append(
+        "- **M1/M2/M3 stack:** M2 outputs P(success); M3 converts it to bet fraction; "
+        "M3=0 with M1≠0 means a candidate was rejected by the sizing rule, not absent from M1."
+    )
     lines.append("")
     return lines
+
+
+def generate_m3_allocation_report(
+    m3_summary: dict[str, Any],
+    report_path: Path,
+    *,
+    mode_name: str = "long_only",
+) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    fig_prefix = f"../data/backtests/{mode_name}/figures"
+    allocation = m3_summary.get("allocation_summary", pd.DataFrame())
+    rejection = m3_summary.get("rejection_analysis", pd.DataFrame())
+    mode_cmp = m3_summary.get("mode_comparison", pd.DataFrame())
+
+    lines = [
+        "# M3 Bet-Sizing & Allocation Analysis",
+        "",
+        "**Research use only — not investment advice.**",
+        "",
+        "## M1 / M2 / M3 roles (Joubert framework)",
+        "",
+        "| Layer | Output | Question answered |",
+        "| --- | --- | --- |",
+        "| **M1** | `M1_signal` ∈ {-1, 0, 1} | Which side? (buy candidate or not) |",
+        "| **M2** | `p_success` ∈ [0, 1] | How likely is the M1 trade profitable? |",
+        "| **M3** | `M3_size` ∈ [0, 1] | How much capital to bet? (before portfolio caps) |",
+        "",
+        "M3 is a **deterministic sizing rule**, not a classifier. Binary thresholding at T=0.55 is an "
+        "all-or-nothing M3 rule, not a separate M2 model.",
+        "",
+        "## Allocation states (long-only interpretation)",
+        "",
+        "| State | Condition | Meaning |",
+        "| --- | --- | --- |",
+        "| `no_signal` | M1 = 0 | No buy candidate from M1 (not selected in top-K) |",
+        "| `m3_zero` | M1 ≠ 0 and M3_size = 0 | Buy candidate existed; M3 allocated zero capital |",
+        "| `m3_active` | M1 ≠ 0 and M3_size > 0 | Buy candidate received positive bet fraction |",
+        "",
+        "## Allocation summary by period",
+        "",
+    ]
+    if not allocation.empty:
+        disp = allocation.copy()
+        disp["share"] = disp["share"].map(lambda x: _fmt_pct(x))
+        lines.append(_markdown_table(disp))
+        lines.append("")
+        lines.append(f"![M3 allocation states]({fig_prefix}/m3_allocation_states.png)")
+        lines.append("")
+
+    lines.extend(["## M3 rejection analysis (test, M1 candidates only)", ""])
+    if not rejection.empty:
+        disp = rejection.copy()
+        for col in ("mean_p_success", "median_p_success", "mean_trade_return", "hit_rate"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(lambda x: _fmt_pct(x) if "return" in col or col == "hit_rate" else _fmt_num(x))
+        lines.append(_markdown_table(disp))
+    lines.extend(["", "## M3 rule comparison (binary vs linear vs ECDF)", ""])
+    if not mode_cmp.empty:
+        disp = mode_cmp.copy()
+        if "m3_zero_share" in disp.columns:
+            disp["m3_zero_share"] = disp["m3_zero_share"].map(lambda x: _fmt_pct(x))
+        if "mean_m3_size_on_candidates" in disp.columns:
+            disp["mean_m3_size_on_candidates"] = disp["mean_m3_size_on_candidates"].map(lambda x: _fmt_num(x))
+        lines.append(_markdown_table(disp))
+    lines.append("")
+    report_path.write_text("\n".join(lines))
 
 
 def generate_m1_factor_analysis_report(
@@ -1944,8 +2046,9 @@ def generate_m2_diagnostics_report(
         "calibrated but still rank poorly.",
         "- **AUC vs precision/recall:** AUC is threshold-independent. At threshold "
         f"**{threshold}**, recall={_fmt_num(metrics.get('recall', float('nan')))} — "
-        "if recall ≈ 1.0, binary M2 approves all trades and adds no filter.",
-        "- **Economic role:** M2 value in this pipeline is mainly **ECDF sizing** (risk shaping), not rejecting trades.",
+        "if recall ≈ 1.0, binary M3 at that threshold approves all trades and adds no filter.",
+        "- **Economic role:** M2 outputs probabilities only; **M3** converts them to bet fractions. "
+        "Threshold approval at 0.55 is an M3 binary sizing rule, not M2 classification output.",
         "",
         f"![ROC and calibration]({fig_prefix}/m2_roc_calibration.png)",
         "",
@@ -2058,6 +2161,7 @@ def generate_companion_reports(
     fs = getattr(long_mode, "factor_summary", None) or {}
     rs = getattr(long_mode, "regime_summary", None) or {}
     m2d = getattr(long_mode, "m2_deep_summary", None) or {}
+    m3d = getattr(long_mode, "m3_summary", None) or {}
     threshold = cfg.m2.threshold if cfg else 0.55
 
     if fs:
@@ -2074,6 +2178,8 @@ def generate_companion_reports(
         )
     if rs:
         generate_market_regime_report(rs, reports_root / "market_regime_analysis.md", mode_name="long_only")
+    if m3d:
+        generate_m3_allocation_report(m3d, reports_root / "m3_allocation_analysis.md", mode_name="long_only")
 
 
 def generate_dual_mode_report(
@@ -2347,12 +2453,15 @@ def run_diagnostics(
     factor_summary: dict[str, Any] = {}
     regime_summary: dict[str, Any] = {}
     m2_deep_summary: dict[str, Any] = {}
+    m3_summary: dict[str, Any] = {}
     if cfg is not None and returns_wide is not None and train_panel is not None:
         from src.factor_analysis import run_factor_analysis
         from src.feature_engineering import get_feature_columns
+        from src.m3_diagnostics import run_m3_diagnostics
         from src.regime_analysis import run_regime_analysis
 
         feature_cols = get_feature_columns(panel.reset_index())
+        train_proba = train_panel.loc[train_panel["M1_signal"] != 0, "p_success"]
         factor_summary = run_factor_analysis(
             panel,
             train_panel,
@@ -2381,6 +2490,14 @@ def run_diagnostics(
                 m2_metrics.update(
                     {k: v for k, v in m2_deep_summary["m2_metrics"].items() if k not in m2_metrics}
                 )
+        m3_summary = run_m3_diagnostics(
+            panel,
+            train_panel,
+            test_panel,
+            cfg,
+            output_dir,
+            train_proba=train_proba,
+        )
 
     m1_signal_analysis = analyze_m1_signal_m2_performance(
         test_panel, cfg_threshold, period_label="test"
@@ -2424,6 +2541,7 @@ def run_diagnostics(
         "factor_summary": factor_summary,
         "regime_summary": regime_summary,
         "m2_deep_summary": m2_deep_summary,
+        "m3_summary": m3_summary,
     }
     json_summary = {
         **summary,
