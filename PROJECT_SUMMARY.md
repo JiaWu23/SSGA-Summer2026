@@ -11,6 +11,8 @@ The project is for **research and education only**. It is not live trading infra
 
 **Branch update vs `main`:** [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md) (executive) · [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md) (technical)
 
+**New to finance terms?** See [TERMINOLOGY.md](TERMINOLOGY.md) — plain-language glossary for ETFs, Sharpe, ECDF, M1/M2/M3, and all report jargon.
+
 ## Branch vs `main` (July 2026)
 
 | Area | `main` | `vitaly_week5` |

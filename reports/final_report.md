@@ -4,6 +4,8 @@ This run executes the pipeline **twice**: once with M1 **long-only** (no short s
 
 **Research use only — not investment advice.**
 
+**Terminology:** See [TERMINOLOGY.md](../TERMINOLOGY.md) for plain-language definitions (ETF, Sharpe, ECDF, M1/M2/M3, etc.).
+
 ## Sample Period
 
 | Item | Value |
@@ -435,11 +437,12 @@ Companion reports provide factor-level, M2 input, regime, M3 allocation, evaluat
 - [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance
 - [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules
 - [Extended Evaluation](evaluation_analysis.md) — walk-forward folds and transaction-cost sensitivity
+- [Walk-Forward Analysis](walk_forward_analysis.md) — ECDF edge stability across OOS windows
 
 - **M1 factors (test):** strongest IC is `trend_score` (mean IC 0.1210); momentum–trend ρ=0.77 — IC-proportional weights improve M1 test Sharpe to **0.795** vs baseline **0.787** (research only).
 - **M2 AUC-ROC (test, long-only):** **0.5884** (up from **~0.573** on `main` with legacy features) — still weak ranking; value is mainly in M3 ECDF sizing, not M3 binary threshold at 0.55.
 - **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.
-- **Transaction costs:** ECDF Sharpe edge vs M1-only remains positive at 25 bps on the production test window.
+- **Walk-forward ECDF edge:** mean **+0.177** Sharpe vs M1-only (**4/6** folds positive) — [Walk-Forward Analysis](walk_forward_analysis.md). Not a 2021-only artifact (pre-2021 mean edge +0.243).
 - **M3 allocation (test):** 42.8571% of asset-weeks are M1 candidates with M3_size > 0 (active bets before portfolio constraints).
 - **M1/M2/M3 stack:** M2 outputs P(success); M3 converts it to bet fraction; M3=0 with M1≠0 means a candidate was rejected by the sizing rule, not absent from M1.
 

@@ -85,7 +85,7 @@ def _cleanup_stale_reports_root(reports_root: Path) -> None:
     """Remove legacy entries from reports/ root; only final_report.md and subdirs may remain."""
     if not reports_root.exists():
         return
-    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md", "evaluation_analysis.md"}
+    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md", "evaluation_analysis.md", "walk_forward_analysis.md"}
     for path in list(reports_root.iterdir()):
         if path.name in allowed:
             continue
@@ -174,6 +174,26 @@ def run_m1_mode(
     for name, res in results.items():
         res.returns.to_frame().to_parquet(backtests_dir / f"{name}_returns.parquet")
 
+    m1_weight_wf = pd.DataFrame()
+    m1_weight_decision: dict[str, Any] = {}
+    if mode_name == "long_only":
+        from src.factor_analysis import run_m1_weight_walk_forward_validation
+
+        logger.info("Running M1 IC-proportional weight walk-forward validation")
+        m1_weight_wf, m1_weight_decision = run_m1_weight_walk_forward_validation(
+            base_panel, feature_cols, returns_wide, mode_cfg
+        )
+        eval_dir = backtests_dir / "evaluation"
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        if not m1_weight_wf.empty:
+            m1_weight_wf.to_csv(eval_dir / "m1_weight_walk_forward.csv", index=False)
+        if m1_weight_decision:
+            import json
+
+            (eval_dir / "m1_weight_walk_forward_decision.json").write_text(
+                json.dumps(m1_weight_decision, indent=2)
+            )
+
     diag_summary = run_diagnostics(
         results,
         panel,
@@ -185,6 +205,7 @@ def run_m1_mode(
         train_panel=train,
         m1_model=m1,
         m2_model=m2_model,
+        m1_weight_decision=m1_weight_decision or None,
     )
 
     short_pct = (m1_signals == -1).mean() * 100
@@ -210,6 +231,8 @@ def run_m1_mode(
             mode_cfg,
             production_results=results,
             test_panel=test_eval,
+            m1_weight_walk_forward=m1_weight_wf,
+            m1_weight_decision=m1_weight_decision or None,
         )
         eval_dir = backtests_dir / "evaluation"
         eval_dir.mkdir(parents=True, exist_ok=True)
@@ -219,6 +242,14 @@ def run_m1_mode(
             wf.to_csv(eval_dir / "walk_forward_summary.csv", index=False)
         if not tc.empty:
             tc.to_csv(eval_dir / "transaction_cost_sensitivity.csv", index=False)
+        wf_m1 = eval_summary.get("m1_weight_walk_forward", pd.DataFrame())
+        if not wf_m1.empty:
+            wf_m1.to_csv(eval_dir / "m1_weight_walk_forward.csv", index=False)
+        m1_dec = eval_summary.get("m1_weight_decision")
+        if m1_dec:
+            import json
+
+            (eval_dir / "m1_weight_walk_forward_decision.json").write_text(json.dumps(m1_dec, indent=2))
         fig_dir = backtests_dir / "figures"
         save_evaluation_charts(wf, tc, fig_dir)
 

@@ -96,6 +96,7 @@ def test_save_evaluation_charts_and_report(tmp_path: Path):
             "fold_id": ["1", "2"],
             "m1_only_sharpe": [0.5, 0.6],
             "ecdf_sharpe": [0.7, 0.65],
+            "ecdf_sharpe_edge_vs_m1": [0.2, 0.05],
             "equal_weight_sharpe": [0.4, 0.45],
         }
     )
@@ -113,6 +114,7 @@ def test_save_evaluation_charts_and_report(tmp_path: Path):
     fig_dir = tmp_path / "figures"
     saved = save_evaluation_charts(walk_forward, tc, fig_dir)
     assert "walk_forward_sharpe.png" in saved
+    assert "walk_forward_ecdf_edge.png" in saved
     assert "transaction_cost_sensitivity.png" in saved
 
     eval_summary = {

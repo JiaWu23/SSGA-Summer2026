@@ -328,3 +328,15 @@ def clone_config_with_m1_allow_short(cfg: PipelineConfig, allow_short: bool) -> 
     data.setdefault("models", {}).setdefault("m1", {})["allow_short"] = allow_short
     data.setdefault("portfolio", {})["allow_short"] = allow_short
     return _build_config(data)
+
+
+def clone_config_with_m1_weights(cfg: PipelineConfig, weights: dict[str, float]) -> PipelineConfig:
+    """Return a copy of config with M1 factor weights replaced."""
+    import copy
+
+    data = copy.deepcopy(cfg._raw)
+    data.setdefault("models", {}).setdefault("m1", {})["weights"] = {k: float(v) for k, v in weights.items()}
+    updated = _build_config(data)
+    validate_split_dates(updated)
+    _validate_portfolio(updated)
+    return updated

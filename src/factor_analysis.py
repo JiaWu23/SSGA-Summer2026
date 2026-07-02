@@ -408,6 +408,207 @@ def recommend_m1_weights(
     }
 
 
+def derive_fold_ic_proportional_weights(
+    base_panel: pd.DataFrame,
+    feature_cols: list[str],
+    returns_wide: pd.DataFrame,
+    fold_cfg: PipelineConfig,
+) -> dict[str, float]:
+    """Compute IC-proportional M1 weights using only the fold train window (no lookahead)."""
+    from src.model_m1 import build_m1_model, split_train_test
+
+    panel = _ensure_panel_index(base_panel)
+    dates = pd.to_datetime(panel.index.get_level_values("date"))
+    test_end = pd.Timestamp(fold_cfg.split.test_end or dates.max())
+    panel = panel[dates <= test_end]
+    train, _ = split_train_test(panel, fold_cfg)
+    if train.empty:
+        return dict(fold_cfg.m1.weights)
+
+    fwd_col = f"forward_return_{fold_cfg.labels.horizon_weeks}w"
+    m1 = build_m1_model(fold_cfg)
+    X_train = train[feature_cols].fillna(0)
+    returns_train = returns_wide.loc[
+        (returns_wide.index >= pd.Timestamp(fold_cfg.split.train_start))
+        & (returns_wide.index <= pd.Timestamp(fold_cfg.split.train_end))
+    ]
+    m1.fit(
+        X_train,
+        train["m1_target"],
+        forward_returns=train[fwd_col],
+        panel=train,
+        returns_wide=returns_train,
+        portfolio_cfg=fold_cfg.portfolio,
+    )
+    components = m1.predict_component_scores(X_train)
+    train_scored = train.copy()
+    for col in components.columns:
+        train_scored[col] = components[col].reindex(train.index)
+    factor_ic = compute_factor_ic(
+        train_scored,
+        period_label="train",
+        start=fold_cfg.split.train_start,
+        end=fold_cfg.split.train_end,
+    )
+    return ic_proportional_weights(factor_ic, period="train", fallback=dict(fold_cfg.m1.weights))
+
+
+def evaluate_m1_weight_walk_forward_decision(
+    summary: pd.DataFrame,
+    *,
+    min_m1_sharpe_gain: float = 0.003,
+    max_ecdf_sharpe_loss: float = 0.02,
+) -> dict[str, Any]:
+    """Decide whether to adopt IC-proportional weights from walk-forward fold comparison."""
+    if summary.empty:
+        return {
+            "apply_ic_weights": False,
+            "reason": "No walk-forward folds completed.",
+        }
+
+    m1_gain = float(summary["ic_m1_sharpe"].mean() - summary["baseline_m1_sharpe"].mean())
+    ecdf_gain = float(summary["ic_ecdf_sharpe"].mean() - summary["baseline_ecdf_sharpe"].mean())
+    m1_wins = int((summary["ic_m1_sharpe"] > summary["baseline_m1_sharpe"]).sum())
+    ecdf_wins = int((summary["ic_ecdf_sharpe"] >= summary["baseline_ecdf_sharpe"]).sum())
+    n_folds = len(summary)
+
+    apply = (
+        m1_gain >= min_m1_sharpe_gain
+        and ecdf_gain >= -max_ecdf_sharpe_loss
+        and m1_wins >= max(1, n_folds // 2)
+    )
+    if apply:
+        reason = (
+            f"Walk-forward: mean M1 Sharpe +{m1_gain:.4f}, mean ECDF Sharpe {ecdf_gain:+.4f}; "
+            f"IC wins M1 in {m1_wins}/{n_folds} folds."
+        )
+    else:
+        reason = (
+            f"Walk-forward: mean M1 Sharpe {m1_gain:+.4f} (need ≥{min_m1_sharpe_gain}), "
+            f"mean ECDF Sharpe {ecdf_gain:+.4f} (max loss {max_ecdf_sharpe_loss}); "
+            f"M1 wins {m1_wins}/{n_folds}. Keep baseline weights."
+        )
+    return {
+        "apply_ic_weights": apply,
+        "mean_m1_sharpe_gain": m1_gain,
+        "mean_ecdf_sharpe_gain": ecdf_gain,
+        "m1_fold_wins": m1_wins,
+        "ecdf_fold_wins": ecdf_wins,
+        "n_folds": n_folds,
+        "reason": reason,
+    }
+
+
+def run_m1_weight_walk_forward_validation(
+    base_panel: pd.DataFrame,
+    feature_cols: list[str],
+    returns_wide: pd.DataFrame,
+    cfg: PipelineConfig,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Compare baseline vs per-fold IC-proportional M1 weights across walk-forward folds."""
+    from src.config import apply_split_overrides, clone_config_with_m1_allow_short, clone_config_with_m1_weights
+    from src.evaluation import _fit_fold_stack, build_walk_forward_folds
+
+    long_cfg = clone_config_with_m1_allow_short(cfg, allow_short=False)
+    folds = build_walk_forward_folds(base_panel, long_cfg, long_cfg.evaluation)
+    rows: list[dict[str, Any]] = []
+
+    for fold in folds:
+        fold_cfg = apply_split_overrides(
+            long_cfg,
+            train_end=fold["train_end"],
+            test_start=fold["test_start"],
+            test_end=fold["test_end"],
+        )
+        try:
+            ic_weights = derive_fold_ic_proportional_weights(
+                base_panel, feature_cols, returns_wide, fold_cfg
+            )
+            _, base_summary = _fit_fold_stack(base_panel, feature_cols, returns_wide, fold_cfg)
+            ic_cfg = clone_config_with_m1_weights(fold_cfg, ic_weights)
+            _, ic_summary = _fit_fold_stack(base_panel, feature_cols, returns_wide, ic_cfg)
+        except (ValueError, KeyError) as exc:
+            import logging
+
+            logging.getLogger(__name__).warning("M1 weight fold %s skipped: %s", fold.get("fold_id"), exc)
+            continue
+
+        b_m1 = base_summary["strategy_metrics"].get("m1_only", {})
+        b_ecdf = base_summary["strategy_metrics"].get("m1_m2_m3_ecdf", {})
+        i_m1 = ic_summary["strategy_metrics"].get("m1_only", {})
+        i_ecdf = ic_summary["strategy_metrics"].get("m1_m2_m3_ecdf", {})
+        rows.append(
+            {
+                **fold,
+                "baseline_m1_sharpe": b_m1.get("sharpe", float("nan")),
+                "ic_m1_sharpe": i_m1.get("sharpe", float("nan")),
+                "m1_sharpe_delta": i_m1.get("sharpe", float("nan")) - b_m1.get("sharpe", float("nan")),
+                "baseline_ecdf_sharpe": b_ecdf.get("sharpe", float("nan")),
+                "ic_ecdf_sharpe": i_ecdf.get("sharpe", float("nan")),
+                "ecdf_sharpe_delta": i_ecdf.get("sharpe", float("nan")) - b_ecdf.get("sharpe", float("nan")),
+                "ic_momentum": ic_weights.get("momentum"),
+                "ic_trend": ic_weights.get("trend"),
+                "ic_macro": ic_weights.get("macro"),
+                "ic_risk_penalty": ic_weights.get("risk_penalty"),
+            }
+        )
+
+    summary = pd.DataFrame(rows)
+    decision = evaluate_m1_weight_walk_forward_decision(summary)
+    if not summary.empty:
+        decision["mean_ic_weights"] = {
+            "momentum": float(summary["ic_momentum"].mean()),
+            "trend": float(summary["ic_trend"].mean()),
+            "macro": float(summary["ic_macro"].mean()),
+            "risk_penalty": float(summary["ic_risk_penalty"].mean()),
+        }
+    return summary, decision
+
+
+def finalize_m1_weight_recommendation(
+    holdout_rec: dict[str, Any],
+    wf_decision: dict[str, Any] | None,
+    baseline_weights: dict[str, float],
+) -> dict[str, Any]:
+    """Merge single-holdout tuning with walk-forward adoption decision."""
+    rec = dict(holdout_rec)
+    rec["holdout_variant"] = rec.get("variant", "baseline")
+    rec["holdout_test_sharpe"] = rec.get("test_sharpe")
+    if not wf_decision:
+        rec["walk_forward_validated"] = False
+        rec["config_action"] = "keep_baseline_run_walk_forward"
+        rec["rationale"] = (
+            f"{rec.get('rationale', '')} Walk-forward validation not run; keep config weights until validated."
+        ).strip()
+        rec["variant"] = "baseline"
+        rec["weights"] = dict(baseline_weights)
+        return rec
+
+    rec["walk_forward_validated"] = True
+    rec["walk_forward_apply"] = bool(wf_decision.get("apply_ic_weights"))
+    rec["walk_forward_mean_m1_gain"] = wf_decision.get("mean_m1_sharpe_gain")
+    rec["walk_forward_mean_ecdf_gain"] = wf_decision.get("mean_ecdf_sharpe_gain")
+    rec["walk_forward_m1_wins"] = wf_decision.get("m1_fold_wins")
+    rec["walk_forward_n_folds"] = wf_decision.get("n_folds")
+
+    if wf_decision.get("apply_ic_weights"):
+        mean_w = wf_decision.get("mean_ic_weights") or rec.get("weights", baseline_weights)
+        rec["variant"] = "ic_proportional_walk_forward"
+        rec["weights"] = dict(mean_w)
+        rec["config_action"] = "apply_ic_weights"
+        rec["rationale"] = wf_decision.get("reason", "")
+    else:
+        rec["variant"] = "baseline"
+        rec["weights"] = dict(baseline_weights)
+        rec["config_action"] = "keep_baseline"
+        rec["rationale"] = (
+            f"{wf_decision.get('reason', '')} "
+            f"Holdout tuning favored `{rec.get('holdout_variant')}` "
+            f"(test Sharpe {rec.get('holdout_test_sharpe', float('nan')):.4f}) but walk-forward did not confirm."
+        ).strip()
+    return rec
+
+
 def _fmt_metric(val: float) -> str:
     if pd.isna(val):
         return "n/a"
@@ -712,6 +913,7 @@ def run_factor_analysis(
     *,
     m1_model: object | None = None,
     feature_cols: list[str] | None = None,
+    m1_weight_decision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run full M1 factor diagnostics and persist CSVs/charts."""
     panel = _ensure_panel_index(panel)
@@ -764,6 +966,8 @@ def run_factor_analysis(
             grid_top.to_csv(output_dir / "m1_factor_weight_grid_top.csv", index=False)
         rec = weight_tuning_meta.get("recommendation", {})
         if rec:
+            rec = finalize_m1_weight_recommendation(rec, m1_weight_decision, dict(m1_model.weights))
+            weight_tuning_meta["recommendation"] = rec
             pd.DataFrame([rec]).to_csv(output_dir / "m1_factor_weight_recommendation.csv", index=False)
 
     sleeve_returns = _collect_sleeve_returns(panel, returns_wide, cfg)

@@ -1797,13 +1797,17 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         "Branch update (vs `main`): [Executive summary](../BRANCH_UPDATE_REPORT.md) · "
         "[Technical report](branch_update_vitaly_week5.md)",
         "",
+        "**Terminology:** [TERMINOLOGY.md](../TERMINOLOGY.md) — plain-language glossary for finance and ML terms used in these reports.",
+        "",
         "Companion reports provide factor-level, M2 input, regime, M3 allocation, and AUC-ROC detail:",
         "",
         "- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests",
         "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",
         "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
         "- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules",
+        "- [M3 Threshold Analysis](m3_threshold_analysis.md) — binary/linear threshold sweep with rejection vs Sharpe trade-off",
         "- [Extended Evaluation](evaluation_analysis.md) — walk-forward folds and transaction-cost sensitivity",
+        "- [Walk-Forward Analysis](walk_forward_analysis.md) — ECDF edge stability across OOS windows",
         "",
     ]
     if long_mode is None:
@@ -1833,18 +1837,25 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         lines.append("- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.")
     m3d = getattr(long_mode, "m3_summary", None) or {}
     evald = getattr(long_mode, "eval_summary", None) or {}
+    wf_stab = evald.get("walk_forward_stability") or {}
     if evald:
         wf = evald.get("walk_forward", pd.DataFrame())
-        if not wf.empty and "ecdf_sharpe_edge_vs_m1" in wf.columns:
+        if not wf.empty and "ecdf_sharpe_edge_vs_m1" in wf.columns and not wf_stab:
             mean_edge = wf["ecdf_sharpe_edge_vs_m1"].mean()
             lines.append(
                 f"- **Walk-forward (long-only):** mean ECDF Sharpe edge vs M1-only is {_fmt_num(mean_edge)} "
                 f"across {len(wf)} fold(s)."
             )
-        if evald.get("ecdf_edge_persists_at_25bps"):
-            lines.append(
-                "- **Transaction costs:** ECDF Sharpe edge vs M1-only remains positive at 25 bps on the production test window."
-            )
+    if wf_stab:
+        lines.append(
+            f"- **Walk-forward ECDF edge:** mean {_fmt_num(wf_stab.get('mean_ecdf_edge', float('nan')))} "
+            f"({wf_stab.get('positive_edge_folds', 0)}/{wf_stab.get('n_folds', 0)} folds positive) — "
+            f"see [Walk-Forward Analysis](walk_forward_analysis.md)."
+        )
+    if evald.get("ecdf_edge_persists_at_25bps"):
+        lines.append(
+            "- **Transaction costs:** ECDF Sharpe edge vs M1-only remains positive at 25 bps on the production test window."
+        )
     if m3d.get("allocation_summary") is not None and not m3d["allocation_summary"].empty:
         test_alloc = m3d["allocation_summary"]
         if "period" in test_alloc.columns:
@@ -2028,13 +2039,38 @@ def generate_m1_factor_analysis_report(
     )
     if recommendation:
         rec_w = recommendation.get("weights", {})
+        if isinstance(rec_w, str):
+            import ast
+
+            try:
+                rec_w = ast.literal_eval(rec_w)
+            except (SyntaxError, ValueError):
+                rec_w = {}
+        action = recommendation.get("config_action", "research_only")
+        title = "### Weight recommendation"
+        if action == "keep_baseline":
+            title = "### Weight recommendation — **keep baseline** (walk-forward validated)"
+        elif action == "apply_ic_weights":
+            title = "### Weight recommendation — **apply IC weights** (walk-forward validated)"
+        lines.extend([title, ""])
+        if recommendation.get("walk_forward_validated"):
+            lines.extend(
+                [
+                    f"- **Walk-forward:** {recommendation.get('walk_forward_n_folds', 'n/a')} folds; "
+                    f"M1 wins {recommendation.get('walk_forward_m1_wins', 'n/a')}; "
+                    f"mean M1 Sharpe Δ {recommendation.get('walk_forward_mean_m1_gain', float('nan')):+.4f}; "
+                    f"mean ECDF Sharpe Δ {recommendation.get('walk_forward_mean_ecdf_gain', float('nan')):+.4f}",
+                    f"- **Holdout variant:** `{recommendation.get('holdout_variant', 'n/a')}` "
+                    f"(test Sharpe {recommendation.get('holdout_test_sharpe', float('nan')):.4f})",
+                    "",
+                ]
+            )
         lines.extend(
             [
-                "### Recommended weights (research suggestion — not applied to config)",
-                "",
-                f"- **Variant:** `{recommendation.get('variant', 'baseline')}`",
+                f"- **Adopted variant:** `{recommendation.get('variant', 'baseline')}`",
                 f"- **Weights:** momentum {rec_w.get('momentum', 0):.0%}, trend {rec_w.get('trend', 0):.0%}, "
                 f"macro {rec_w.get('macro', 0):.0%}, risk penalty {rec_w.get('risk_penalty', 0):.0%}",
+                f"- **Config action:** `{action}`",
                 f"- **Rationale:** {recommendation.get('rationale', '')}",
                 "",
             ]
@@ -2262,6 +2298,14 @@ def generate_companion_reports(
         generate_market_regime_report(rs, reports_root / "market_regime_analysis.md", mode_name="long_only")
     if m3d:
         generate_m3_allocation_report(m3d, reports_root / "m3_allocation_analysis.md", mode_name="long_only")
+    m3_thresh = reports_root / "m3_threshold_analysis.md"
+    if not m3_thresh.exists() and cfg is not None:
+        try:
+            from src.m3_threshold_research import run_m3_threshold_research
+
+            run_m3_threshold_research(Path("config/config.yaml"), project_root=reports_root.parent)
+        except Exception:
+            logger.exception("M3 threshold sweep failed; skipping report")
     evald = getattr(long_mode, "eval_summary", None) or {}
     if evald:
         from src.evaluation import generate_evaluation_report
@@ -2272,6 +2316,19 @@ def generate_companion_reports(
             mode_name="long_only",
             cfg=cfg,
         )
+        wf = evald.get("walk_forward", pd.DataFrame())
+        stability = evald.get("walk_forward_stability")
+        if stability and not wf.empty:
+            from src.evaluation import generate_walk_forward_analysis_report
+
+            generate_walk_forward_analysis_report(
+                wf,
+                stability,
+                reports_root / "walk_forward_analysis.md",
+                mode_name="long_only",
+                cfg=cfg,
+                tc_sensitivity=evald.get("transaction_cost_sensitivity"),
+            )
 
 
 def generate_dual_mode_report(
@@ -2524,6 +2581,7 @@ def run_diagnostics(
     train_panel: pd.DataFrame | None = None,
     m1_model: object | None = None,
     m2_model: object | None = None,
+    m1_weight_decision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     metrics_table = build_metrics_table(results)
     metrics_table.to_csv(output_dir / "metrics_table.csv", index=False)
@@ -2564,6 +2622,7 @@ def run_diagnostics(
             output_dir,
             m1_model=m1_model,
             feature_cols=feature_cols,
+            m1_weight_decision=m1_weight_decision,
         )
         regime_summary = run_regime_analysis(
             panel,

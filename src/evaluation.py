@@ -305,6 +305,9 @@ def save_evaluation_charts(
         fig.savefig(p, dpi=120, bbox_inches="tight")
         plt.close(fig)
         saved.append(p.name)
+        edge_chart = save_walk_forward_edge_chart(walk_forward, output_dir)
+        if edge_chart:
+            saved.append(edge_chart)
 
     if not tc_sensitivity.empty:
         fig, ax = plt.subplots(figsize=(8, 4))
@@ -339,6 +342,8 @@ def run_extended_evaluation(
     production_results: dict[str, Any],
     test_panel: pd.DataFrame,
     eval_cfg: EvaluationConfig | None = None,
+    m1_weight_walk_forward: pd.DataFrame | None = None,
+    m1_weight_decision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Walk-forward validation + transaction-cost sensitivity on the production test window."""
     eval_cfg = eval_cfg or cfg.evaluation
@@ -363,13 +368,32 @@ def run_extended_evaluation(
         eval_cfg=eval_cfg,
     )
 
+    m1_weight_wf = m1_weight_walk_forward if m1_weight_walk_forward is not None else pd.DataFrame()
+    m1_weight_decision_out = m1_weight_decision or {}
+    if m1_weight_wf.empty and m1_weight_decision_out == {} and eval_cfg.walk_forward_enabled:
+        try:
+            from src.factor_analysis import run_m1_weight_walk_forward_validation
+
+            logger.info("Running M1 IC-proportional weight walk-forward validation")
+            m1_weight_wf, m1_weight_decision_out = run_m1_weight_walk_forward_validation(
+                base_panel, feature_cols, returns_wide, cfg
+            )
+        except Exception as exc:
+            logger.warning("M1 weight walk-forward validation failed: %s", exc)
+
     summary: dict[str, Any] = {
         "walk_forward": walk_forward,
         "transaction_cost_sensitivity": tc_sensitivity,
+        "m1_weight_walk_forward": m1_weight_wf,
+        "m1_weight_decision": m1_weight_decision_out,
     }
     if not walk_forward.empty:
         summary["walk_forward_mean_ecdf_edge"] = float(walk_forward["ecdf_sharpe_edge_vs_m1"].mean())
         summary["walk_forward_mean_m2_auc"] = float(walk_forward["m2_auc"].mean())
+        summary["walk_forward_stability"] = analyze_walk_forward_stability(
+            walk_forward,
+            production_test_start=cfg.split.test_start,
+        )
     if not tc_sensitivity.empty:
         ecdf_rows = tc_sensitivity[tc_sensitivity["strategy"] == STRATEGY_M1_M2_M3_ECDF]
         if not ecdf_rows.empty:
@@ -384,6 +408,357 @@ def run_extended_evaluation(
                 else False
             )
     return summary
+
+
+def analyze_walk_forward_stability(
+    walk_forward: pd.DataFrame,
+    *,
+    production_test_start: str = "2021-01-01",
+    min_positive_fold_share: float = 0.5,
+) -> dict[str, Any]:
+    """Summarize whether ECDF Sharpe edge vs M1-only is stable across walk-forward folds."""
+    if walk_forward.empty:
+        return {
+            "verdict": "insufficient_data",
+            "stable_ecdf_edge": False,
+            "n_folds": 0,
+            "summary": "No walk-forward folds completed.",
+        }
+
+    wf = walk_forward.copy()
+    edge = wf["ecdf_sharpe_edge_vs_m1"].astype(float)
+    wf["is_production_window"] = pd.to_datetime(wf["test_start"]) >= pd.Timestamp(production_test_start)
+    pre_prod = wf[~wf["is_production_window"]]
+    prod = wf[wf["is_production_window"]]
+
+    positive = int((edge > 0).sum())
+    n = len(wf)
+    mean_edge = float(edge.mean())
+    median_edge = float(edge.median())
+    mean_ecdf = float(wf["ecdf_sharpe"].mean())
+    mean_m1 = float(wf["m1_only_sharpe"].mean())
+    mean_ew = float(wf["equal_weight_sharpe"].mean())
+    ecdf_beats_ew = int((wf["ecdf_sharpe"] > wf["equal_weight_sharpe"]).sum())
+
+    stable = mean_edge > 0 and (positive / n) >= min_positive_fold_share
+
+    if stable and (edge > 0).all():
+        verdict = "stable_all_folds"
+    elif stable:
+        verdict = "stable_majority"
+    elif mean_edge > 0:
+        verdict = "mixed_positive_mean"
+    else:
+        verdict = "unstable"
+
+    production_edge = (
+        float(prod["ecdf_sharpe_edge_vs_m1"].mean()) if not prod.empty else float("nan")
+    )
+    pre_edge = (
+        float(pre_prod["ecdf_sharpe_edge_vs_m1"].mean()) if not pre_prod.empty else float("nan")
+    )
+    production_only_outlier = (
+        not prod.empty
+        and not pre_prod.empty
+        and pd.notna(production_edge)
+        and pd.notna(pre_edge)
+        and production_edge > 0.05
+        and pre_edge <= 0
+    )
+
+    return {
+        "verdict": verdict,
+        "stable_ecdf_edge": stable,
+        "n_folds": n,
+        "positive_edge_folds": positive,
+        "positive_edge_pct": positive / n,
+        "mean_ecdf_edge": mean_edge,
+        "median_ecdf_edge": median_edge,
+        "std_ecdf_edge": float(edge.std()) if n > 1 else 0.0,
+        "mean_ecdf_sharpe": mean_ecdf,
+        "mean_m1_sharpe": mean_m1,
+        "mean_equal_weight_sharpe": mean_ew,
+        "ecdf_beats_equal_weight_folds": ecdf_beats_ew,
+        "pre_production_mean_edge": pre_edge,
+        "pre_production_positive_folds": int((pre_prod["ecdf_sharpe_edge_vs_m1"] > 0).sum())
+        if not pre_prod.empty
+        else 0,
+        "pre_production_n_folds": len(pre_prod),
+        "production_mean_edge": production_edge,
+        "production_n_folds": len(prod),
+        "production_only_outlier": production_only_outlier,
+        "mean_m2_auc": float(wf["m2_auc"].mean()) if "m2_auc" in wf.columns else float("nan"),
+        "summary": _walk_forward_verdict_text(
+            verdict,
+            mean_edge=mean_edge,
+            positive=positive,
+            n=n,
+            production_only_outlier=production_only_outlier,
+        ),
+    }
+
+
+def _walk_forward_verdict_text(
+    verdict: str,
+    *,
+    mean_edge: float,
+    positive: int,
+    n: int,
+    production_only_outlier: bool,
+) -> str:
+    if verdict == "stable_all_folds":
+        base = f"ECDF Sharpe edge vs M1-only is positive in all {n} folds (mean +{mean_edge:.3f})."
+    elif verdict == "stable_majority":
+        base = (
+            f"ECDF edge is positive in {positive}/{n} folds with mean +{mean_edge:.3f} — "
+            "stable under a majority-fold criterion."
+        )
+    elif verdict == "mixed_positive_mean":
+        base = (
+            f"Mean ECDF edge is +{mean_edge:.3f} but only {positive}/{n} folds are positive — "
+            "mixed stability."
+        )
+    elif verdict == "unstable":
+        base = (
+            f"ECDF edge is not stable: mean {mean_edge:+.3f}, positive in only {positive}/{n} folds."
+        )
+    else:
+        base = "Insufficient walk-forward data."
+    if production_only_outlier:
+        base += " Production 2021+ window is stronger than pre-2021 folds."
+    return base
+
+
+def save_walk_forward_edge_chart(walk_forward: pd.DataFrame, output_dir: Any) -> str | None:
+    """Bar chart of ECDF Sharpe edge vs M1 by fold."""
+    if walk_forward.empty or "ecdf_sharpe_edge_vs_m1" not in walk_forward.columns:
+        return None
+    output_dir.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(9, 4))
+    x = walk_forward["fold_id"].astype(str)
+    edge = walk_forward["ecdf_sharpe_edge_vs_m1"]
+    colors = ["#55A868" if v >= 0 else "#C44E52" for v in edge]
+    ax.bar(x, edge, color=colors)
+    ax.axhline(0, color="gray", linewidth=0.8)
+    ax.set_xlabel("Fold")
+    ax.set_ylabel("ECDF Sharpe edge vs M1-only")
+    ax.set_title("Walk-Forward ECDF Sharpe Edge by Fold")
+    for i, (_, row) in enumerate(walk_forward.iterrows()):
+        label = str(row["test_start"])[:4] if "test_start" in walk_forward.columns else str(i + 1)
+        ax.annotate(
+            label,
+            (i, edge.iloc[i]),
+            ha="center",
+            va="bottom" if edge.iloc[i] >= 0 else "top",
+            fontsize=7,
+        )
+    p = output_dir / "walk_forward_ecdf_edge.png"
+    fig.savefig(p, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    return p.name
+
+
+def generate_walk_forward_analysis_report(
+    walk_forward: pd.DataFrame,
+    stability: dict[str, Any],
+    report_path: Path,
+    *,
+    mode_name: str = "long_only",
+    cfg: PipelineConfig | None = None,
+    tc_sensitivity: pd.DataFrame | None = None,
+) -> None:
+    """Dedicated walk-forward report: stability verdict, Q&A, fold table."""
+    from src.diagnostics import _fmt_num, _fmt_pct, _markdown_table
+
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    fig_prefix = f"../data/backtests/{mode_name}/figures"
+    ev = cfg.evaluation if cfg else None
+    prod_start = cfg.split.test_start if cfg else "2021-01-01"
+
+    lines = [
+        "# Walk-Forward Analysis: ECDF Edge Stability",
+        "",
+        "**Research use only — not investment advice.**",
+        "",
+        "This report answers whether **M1+M2+M3 ECDF** improves risk-adjusted returns vs **M1-only** "
+        "across **multiple out-of-sample windows**, not only the production test period (2021+).",
+        "",
+    ]
+    if cfg is not None and ev is not None:
+        lines.extend(
+            [
+                "## Method",
+                "",
+                f"- **Design:** expanding train window; first train end `{ev.walk_forward_first_train_end}`; "
+                f"**{ev.walk_forward_test_years}-year** test blocks",
+                f"- **Production window (config):** `{prod_start}` onward — compared but not the sole metric",
+                "- **Per fold:** refit M1, M2, M3; backtest long-only; score test-block Sharpe",
+                "- **Edge:** `ECDF Sharpe − M1-only Sharpe` on each fold's test window",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Executive verdict",
+            "",
+            f"**{stability.get('summary', 'N/A')}**",
+            "",
+            "| Metric | Value |",
+            "| --- | --- |",
+            f"| Folds completed | {stability.get('n_folds', 0)} |",
+            f"| Stable (majority + positive mean edge)? | **{'Yes' if stability.get('stable_ecdf_edge') else 'No'}** |",
+            f"| Mean ECDF Sharpe edge vs M1 | {_fmt_num(stability.get('mean_ecdf_edge', float('nan')))} |",
+            f"| Median edge | {_fmt_num(stability.get('median_ecdf_edge', float('nan')))} |",
+            f"| Folds with positive edge | {stability.get('positive_edge_folds', 0)} / {stability.get('n_folds', 0)} "
+            f"({stability.get('positive_edge_pct', 0):.0%}) |",
+            f"| Mean ECDF / M1 / EW Sharpe | "
+            f"{_fmt_num(stability.get('mean_ecdf_sharpe', float('nan')))} / "
+            f"{_fmt_num(stability.get('mean_m1_sharpe', float('nan')))} / "
+            f"{_fmt_num(stability.get('mean_equal_weight_sharpe', float('nan')))} |",
+            f"| ECDF beats equal-weight (folds) | {stability.get('ecdf_beats_equal_weight_folds', 0)} / "
+            f"{stability.get('n_folds', 0)} |",
+            f"| Mean M2 AUC (test, across folds) | {_fmt_num(stability.get('mean_m2_auc', float('nan')))} |",
+            "",
+        ]
+    )
+
+    lines.extend(
+        [
+            "## Pre-2021 vs production window",
+            "",
+            "| Segment | Folds | Mean ECDF edge vs M1 | Positive folds |",
+            "| --- | ---: | ---: | ---: |",
+            f"| Pre-`{prod_start}` test blocks | {stability.get('pre_production_n_folds', 0)} | "
+            f"{_fmt_num(stability.get('pre_production_mean_edge', float('nan')))} | "
+            f"{stability.get('pre_production_positive_folds', 0)} |",
+            f"| `{prod_start}`+ test blocks | {stability.get('production_n_folds', 0)} | "
+            f"{_fmt_num(stability.get('production_mean_edge', float('nan')))} | "
+            f"{stability.get('positive_edge_folds', 0) - stability.get('pre_production_positive_folds', 0)} |",
+            "",
+        ]
+    )
+    if stability.get("production_only_outlier"):
+        lines.append(
+            "> **Note:** The production 2021+ fold shows a larger edge than pre-2021 folds. "
+            "Headline OOS metrics should be reported alongside this multi-window table."
+        )
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Key questions",
+            "",
+            "### 1. Is ECDF Sharpe edge vs M1 stable across folds?",
+            "",
+        ]
+    )
+    if stability.get("stable_ecdf_edge"):
+        lines.append(
+            f"**Yes (under majority criterion):** mean edge {_fmt_num(stability.get('mean_ecdf_edge'))}, "
+            f"positive in {stability.get('positive_edge_folds')}/{stability.get('n_folds')} folds."
+        )
+    else:
+        lines.append(
+            f"**No / mixed:** mean edge {_fmt_num(stability.get('mean_ecdf_edge'))}, "
+            f"positive in only {stability.get('positive_edge_folds')}/{stability.get('n_folds')} folds."
+        )
+    lines.extend(
+        [
+            "",
+            "### 2. Is the 2021+ production result representative?",
+            "",
+        ]
+    )
+    if stability.get("production_only_outlier"):
+        lines.append(
+            "**Partially.** Pre-2021 folds show weaker or negative edge; the 2021+ block contributes "
+            "disproportionately to the full-sample ECDF advantage."
+        )
+    elif (
+        stability.get("pre_production_mean_edge", 0) > 0
+        and stability.get("production_mean_edge", 0) > 0
+        and stability.get("pre_production_mean_edge", 0) >= stability.get("production_mean_edge", 0)
+    ):
+        lines.append(
+            "**Broadly yes, not 2021-specific.** Both eras show positive mean ECDF edge; "
+            f"pre-2021 mean edge ({stability.get('pre_production_mean_edge'):.3f}) is actually "
+            f"**higher** than production-era folds ({stability.get('production_mean_edge'):.3f}), "
+            "so the single 2021+ headline is not an isolated outlier."
+        )
+    elif stability.get("pre_production_mean_edge", 0) > 0 and stability.get("production_mean_edge", 0) > 0:
+        lines.append(
+            "**Yes.** Both pre-production and production-era folds show positive mean ECDF edge vs M1-only."
+        )
+    else:
+        lines.append(
+            "**Mixed.** Compare the fold table below — some eras favor ECDF sizing, others favor M1-only levels."
+        )
+    lines.extend(
+        [
+            "",
+            "### 3. Does ECDF add value beyond equal-weight?",
+            "",
+            f"ECDF Sharpe exceeds equal-weight in **{stability.get('ecdf_beats_equal_weight_folds', 0)}** of "
+            f"**{stability.get('n_folds', 0)}** folds (mean ECDF Sharpe "
+            f"{_fmt_num(stability.get('mean_ecdf_sharpe'))} vs EW "
+            f"{_fmt_num(stability.get('mean_equal_weight_sharpe'))}).",
+            "",
+            "### 4. What is M2 doing across folds?",
+            "",
+            f"Mean test AUC **{_fmt_num(stability.get('mean_m2_auc'))}** — ranking remains modest; "
+            "ECDF edge is driven by **vol/drawdown shaping** from `p_success`, not binary filtering.",
+            "",
+            "## Fold-level results",
+            "",
+        ]
+    )
+    if not walk_forward.empty:
+        disp = walk_forward.copy()
+        for col in (
+            "m1_only_sharpe",
+            "m1_only_ann_return",
+            "ecdf_sharpe",
+            "ecdf_ann_return",
+            "ecdf_sharpe_edge_vs_m1",
+            "ecdf_return_edge_vs_m1",
+            "equal_weight_sharpe",
+            "m2_auc",
+        ):
+            if col in disp.columns:
+                if "ann_return" in col or "return_edge" in col:
+                    disp[col] = disp[col].map(lambda x: _fmt_pct(x) if pd.notna(x) else "—")
+                else:
+                    disp[col] = disp[col].map(_fmt_num)
+        lines.append(_markdown_table(disp))
+        lines.append("")
+        lines.append(f"![Walk-forward Sharpe by fold]({fig_prefix}/walk_forward_sharpe.png)")
+        lines.append("")
+        lines.append(f"![ECDF Sharpe edge by fold]({fig_prefix}/walk_forward_ecdf_edge.png)")
+        lines.append("")
+
+    if tc_sensitivity is not None and not tc_sensitivity.empty:
+        lines.extend(["## Transaction-cost sensitivity (production window)", ""])
+        disp = tc_sensitivity.copy()
+        for col in ("annualized_return", "sharpe", "max_drawdown", "hit_rate", "ecdf_sharpe_edge_vs_m1"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(_fmt_num)
+        lines.append(_markdown_table(disp))
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Implications",
+            "",
+            "- Report **fold-level** ECDF edge alongside the single 2021+ test table in `final_report.md`.",
+            "- If edge is fold-dependent, prefer **regime-conditioned M3** or accept ECDF as a drawdown tool, not return engine.",
+            "- M1-only remains the return-oriented sleeve when ECDF edge is negative on a fold.",
+            "",
+            "Related: [evaluation_analysis.md](evaluation_analysis.md) · [final_report.md](final_report.md)",
+            "",
+        ]
+    )
+    report_path.write_text("\n".join(lines))
 
 
 def generate_evaluation_report(

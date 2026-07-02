@@ -12,7 +12,8 @@
 
 This branch makes the multi-asset meta-labeling pipeline **defensible in review** and aligns terminology with **Joubert (2022)**: M1 (side), M2 (trade quality probability), M3 (bet sizing), then portfolio risk controls. It adds **diagnostics, two measurable model improvements, and extended evaluation** — without changing the M1 rule engine or train/test split.
 
-**Full technical detail:** [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
+**Full technical detail:** [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)  
+**Terminology (non-finance readers):** [TERMINOLOGY.md](TERMINOLOGY.md)
 
 ---
 
@@ -24,9 +25,9 @@ Five workstreams landed across the branch (~160 files, +7,400 lines — mostly d
 | --- | --- | --- |
 | 1 | **Analytics layer** | 6 companion reports; factor IC, M2 calibration, regime conditioning, M3 allocation states |
 | 2 | **M3 formalization** | Persisted `M3_size`; strategy rename to `m1_m2_m3_*`; allocation states on panel |
-| 3 | **M1 weight tuning** | IC-driven weights improve test Sharpe **0.787 → 0.795** (+0.008) — research only, not in config |
+| 3 | **M1 weight tuning** | Holdout +0.008 Sharpe; **walk-forward rejected** IC weights (keep 45/25/20/10) |
 | 4 | **M2 ranking** | Test AUC **0.573 → 0.589** (+0.016) via enriched meta-features (52 vs 40 inputs) |
-| 5 | **Extended evaluation** | Transaction-cost sensitivity; walk-forward module (configurable) |
+| 5 | **Extended evaluation** | Walk-forward: **+0.177** mean ECDF edge, **4/6** folds positive |
 
 **Unchanged vs `main`:** M1 top-K selection, train/test dates, portfolio caps, 12% vol target, data sources.
 
@@ -112,15 +113,11 @@ flowchart LR
 
 **Research (high value)**
 
-2. **Apply IC-proportional M1 weights** after walk-forward confirmation (+0.008 test Sharpe in research).
-3. **Run full walk-forward** (`evaluation.walk_forward_enabled: true`) — multi-window OOS validation.
-4. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing to add value.
-5. **Regime-conditioned M3** — ECDF Sharpe **1.21** in risk-off vs **0.86** in risk-on (full sample).
-6. **Short-side logic** — long/short test Sharpe **0.47** vs long-only **0.79**.
+2. **Regime-conditioned M3** — fold 1 (2015–16) had negative ECDF edge; size by regime.
+3. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing.
+4. **Short-side logic** — long/short test Sharpe 0.47 vs 0.79 long-only.
 
-**Ruled out (tested)**
-
-7. Per-asset M2 heads / tree models — test AUC ~0.48–0.50 (overfit).
+**Completed:** Full walk-forward — [walk_forward_analysis.md](reports/walk_forward_analysis.md). ECDF edge **stable (4/6 folds)**.
 
 Full roadmap: [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
 

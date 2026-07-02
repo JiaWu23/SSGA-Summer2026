@@ -90,6 +90,16 @@ Mean M3_size on candidates (full sample): binary **0.999**, linear **0.184**, EC
 
 Recommended weights (not applied to config): momentum **49%**, trend **6%**, macro **15%**, risk penalty **30%**.
 
+### Walk-forward validation (6 expanding-window folds)
+
+| Metric | Baseline vs IC-proportional (per-fold) | Mean Δ |
+| --- | --- | ---: |
+| M1 test Sharpe | IC wins **2 / 6** folds | **-0.035** |
+| ECDF test Sharpe | IC wins **3 / 6** folds | **-0.084** |
+| **Config decision** | — | **Keep baseline 45/25/20/10** |
+
+Single-holdout gain (+0.008 Sharpe on 2021+) does not survive multi-window OOS. Artifacts: `data/backtests/long_only/evaluation/m1_weight_walk_forward.csv`.
+
 Ablation insight: zeroing trend hurts full-sample Sharpe (**0.822** with trend ablated vs **0.702** full M1); momentum and trend overlap via ρ=0.77.
 
 ---
@@ -124,7 +134,17 @@ Ablation insight: zeroing trend hurts full-sample Sharpe (**0.822** with trend a
 
 ### Walk-forward validation
 
-Expanding-window folds (first train end 2014-12-31, 2-year test blocks) are implemented and configurable via `evaluation.walk_forward_enabled`. The latest fast pipeline run disabled walk-forward for runtime; enable in `config/config.yaml` for multi-window OOS tables (`walk_forward_summary.csv`).
+Expanding-window folds completed (**6 folds**, 2-year test blocks). See [walk_forward_analysis.md](walk_forward_analysis.md).
+
+| Metric | Value |
+| --- | ---: |
+| Mean ECDF Sharpe edge vs M1 | **+0.177** |
+| Folds with positive edge | **4 / 6** (67%) |
+| Pre-2021 mean edge | +0.243 |
+| 2021+ mean edge | +0.112 |
+| Stable (majority criterion)? | **Yes** |
+
+Single-holdout 2021+ edge (+0.177 @ 5 bps TC) is **consistent** with multi-window mean; edge is **not** a 2021-only artifact.
 
 ---
 
@@ -134,7 +154,8 @@ Expanding-window folds (first train end 2014-12-31, 2-year test blocks) are impl
 | --- | --- |
 | `src/model_m3.py` | M3 sizing rules |
 | `src/m3_diagnostics.py` | Allocation summaries |
-| `src/factor_analysis.py` | IC, ablation, weight tuning |
+| `src/factor_analysis.py` | IC, ablation, weight tuning, walk-forward weight validation |
+| `src/m1_weight_research.py` | CLI: `python -m src.m1_weight_research` |
 | `src/regime_analysis.py` | Regime timeline & conditioning |
 | `src/model_m2.py` | Enriched M2 features |
 | `src/evaluation.py` | Walk-forward + TC sensitivity |
@@ -161,15 +182,14 @@ Expanding-window folds (first train end 2014-12-31, 2-year test blocks) are impl
 1. Merge PR with [BRANCH_UPDATE_REPORT.md](../BRANCH_UPDATE_REPORT.md) linked.
 
 ### High-value research (prioritized)
-2. **Apply IC-proportional M1 weights** — backtest shows +0.008 test Sharpe; validate on walk-forward before config change.
-3. **Run full walk-forward** with `walk_forward_enabled: true` — confirm ECDF edge is stable across folds (not just 2021+ window).
-4. **M3 threshold sweep** — find binary/linear thresholds with meaningful rejection (current T=0.55 → recall ≈ 1).
-5. **Regime-conditioned M3** — scale ECDF bets by `risk_off` / `inflation_up` (regime report shows heterogeneous Sharpe).
-6. **Short-side M1** — long/short test Sharpe **0.474** vs long-only **0.787**; needs separate signal design.
+2. **Regime-conditioned M3** — scale ECDF bets by `risk_off` / `inflation_up`.
+3. **M3 threshold sweep** — T=0.55 → recall ≈ 1.0.
+4. **Short-side M1** — long/short test Sharpe **0.474** vs long-only **0.787**.
 
-### Lower priority / ruled out for now
-7. Per-asset M2 heads and tree models — tested, test AUC **~0.48–0.50** (overfit).
-8. Trend-heavy M1 weights — test Sharpe **0.734** (worse than baseline).
+### Completed / ruled out
+- **IC-proportional M1 weights:** walk-forward **rejected** (mean M1 Δ **-0.035**, ECDF Δ **-0.084**). Config unchanged.
+- Per-asset M2 heads / tree models — overfit (~0.48–0.50 test AUC).
+- Trend-heavy M1 weights — test Sharpe **0.734** (worse than baseline).
 
 ### Data & production
 9. Institutional point-in-time data before external claims.
