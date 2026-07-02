@@ -444,14 +444,15 @@ def m2_probability_decile_returns(panel: pd.DataFrame, bins: int = 10) -> pd.Dat
 
 
 def m2_feature_importance(m2_model: object, panel: pd.DataFrame, cfg: PipelineConfig) -> pd.DataFrame:
-    from src.model_m2 import SklearnM2, build_m2_features
+    from src.model_m2 import resolve_m2_for_importance
 
-    if not isinstance(m2_model, SklearnM2) or m2_model.pipeline is None:
+    resolved = resolve_m2_for_importance(m2_model)
+    if resolved is None or resolved.pipeline is None:
         return pd.DataFrame()
     if cfg.m2.type != "logistic_regression":
         return pd.DataFrame()
 
-    pipe = m2_model.pipeline
+    pipe = resolved.pipeline
     estimators: list = []
     if hasattr(pipe, "calibrated_classifiers_"):
         estimators = [cc.estimator for cc in pipe.calibrated_classifiers_]
@@ -472,7 +473,7 @@ def m2_feature_importance(m2_model: object, panel: pd.DataFrame, cfg: PipelineCo
     mean_coef = np.mean(coefs, axis=0)
     importance = pd.DataFrame(
         {
-            "feature": m2_model.feature_cols,
+            "feature": resolved.feature_cols,
             "coefficient": mean_coef,
             "abs_coefficient": np.abs(mean_coef),
         }
@@ -583,6 +584,8 @@ def run_m2_deep_diagnostics(
     cfg: PipelineConfig,
     threshold: float,
     output_dir: Path,
+    *,
+    train_panel: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir = output_dir / "figures"
@@ -621,6 +624,14 @@ def run_m2_deep_diagnostics(
         y_true, y_prob, calibration, decile_returns, feature_importance, m2_metrics, figures_dir
     )
 
+    architecture_benchmark = pd.DataFrame()
+    if train_panel is not None and m2_model is not None:
+        from src.model_m2 import m2_architecture_benchmark
+
+        architecture_benchmark = m2_architecture_benchmark(train_panel, test_panel, cfg)
+        if not architecture_benchmark.empty:
+            architecture_benchmark.to_csv(output_dir / "m2_architecture_benchmark.csv", index=False)
+
     return {
         "m2_metrics": m2_metrics,
         "calibration_table": calibration,
@@ -628,6 +639,7 @@ def run_m2_deep_diagnostics(
         "feature_importance": feature_importance,
         "metrics_by_asset": by_asset,
         "metrics_by_regime": by_regime,
+        "architecture_benchmark": architecture_benchmark,
         "charts": charts,
     }
 
@@ -1791,6 +1803,7 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",
         "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
         "- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules",
+        "- [Extended Evaluation](evaluation_analysis.md) — walk-forward folds and transaction-cost sensitivity",
         "",
     ]
     if long_mode is None:
@@ -1819,6 +1832,19 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
     if not perf.empty:
         lines.append("- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.")
     m3d = getattr(long_mode, "m3_summary", None) or {}
+    evald = getattr(long_mode, "eval_summary", None) or {}
+    if evald:
+        wf = evald.get("walk_forward", pd.DataFrame())
+        if not wf.empty and "ecdf_sharpe_edge_vs_m1" in wf.columns:
+            mean_edge = wf["ecdf_sharpe_edge_vs_m1"].mean()
+            lines.append(
+                f"- **Walk-forward (long-only):** mean ECDF Sharpe edge vs M1-only is {_fmt_num(mean_edge)} "
+                f"across {len(wf)} fold(s)."
+            )
+        if evald.get("ecdf_edge_persists_at_25bps"):
+            lines.append(
+                "- **Transaction costs:** ECDF Sharpe edge vs M1-only remains positive at 25 bps on the production test window."
+            )
     if m3d.get("allocation_summary") is not None and not m3d["allocation_summary"].empty:
         test_alloc = m3d["allocation_summary"]
         if "period" in test_alloc.columns:
@@ -1917,6 +1943,9 @@ def generate_m1_factor_analysis_report(
     cov = factor_summary.get("factor_covariance", pd.DataFrame())
     sleeves = factor_summary.get("factor_sleeves", pd.DataFrame())
     ablation = factor_summary.get("factor_ablation", pd.DataFrame())
+    weight_tuning = factor_summary.get("factor_weight_tuning", pd.DataFrame())
+    weight_meta = factor_summary.get("weight_tuning_meta", {})
+    recommendation = weight_meta.get("recommendation", {}) if isinstance(weight_meta, dict) else {}
     fig_prefix = f"../data/backtests/{mode_name}/figures"
 
     lines = [
@@ -1987,6 +2016,42 @@ def generate_m1_factor_analysis_report(
         lines.append(_markdown_table(disp))
         lines.append("")
 
+    lines.extend(
+        [
+            "## Weight Tuning (IC + ablation inspired)",
+            "",
+            "Compares preset and grid-searched M1 factor weights. Grid search selects by **train** Sharpe; "
+            "test columns are out-of-sample. High momentum–trend correlation suggests shifting weight toward "
+            "the stronger test-period IC factor (typically trend).",
+            "",
+        ]
+    )
+    if recommendation:
+        rec_w = recommendation.get("weights", {})
+        lines.extend(
+            [
+                "### Recommended weights (research suggestion — not applied to config)",
+                "",
+                f"- **Variant:** `{recommendation.get('variant', 'baseline')}`",
+                f"- **Weights:** momentum {rec_w.get('momentum', 0):.0%}, trend {rec_w.get('trend', 0):.0%}, "
+                f"macro {rec_w.get('macro', 0):.0%}, risk penalty {rec_w.get('risk_penalty', 0):.0%}",
+                f"- **Rationale:** {recommendation.get('rationale', '')}",
+                "",
+            ]
+        )
+    if not weight_tuning.empty:
+        disp = weight_tuning.copy()
+        for col in ("train_ann_return", "test_ann_return", "train_max_drawdown", "test_max_drawdown"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(lambda x: _fmt_pct(x) if pd.notna(x) else "—")
+        for col in ("train_sharpe", "test_sharpe", "momentum", "trend", "macro", "risk_penalty"):
+            if col in disp.columns:
+                disp[col] = disp[col].map(lambda x: _fmt_num(x) if pd.notna(x) else "—")
+        lines.append(_markdown_table(disp))
+        lines.append("")
+        lines.append(f"![Weight tuning test Sharpe]({fig_prefix}/m1_weight_tuning_test_sharpe.png)")
+        lines.append("")
+
     interaction = sleeves[sleeves["sleeve"] == "interaction"] if not sleeves.empty else pd.DataFrame()
     if not interaction.empty and "interaction_excess_ann" in interaction.columns:
         val = interaction.iloc[0]["interaction_excess_ann"]
@@ -2018,6 +2083,7 @@ def generate_m2_diagnostics_report(
     importance = m2_deep_summary.get("feature_importance", pd.DataFrame())
     by_asset = m2_deep_summary.get("metrics_by_asset", pd.DataFrame())
     by_regime = m2_deep_summary.get("metrics_by_regime", pd.DataFrame())
+    arch_bench = m2_deep_summary.get("architecture_benchmark", pd.DataFrame())
 
     auc = metrics.get("auc", float("nan"))
     base = metrics.get("base_rate", float("nan"))
@@ -2081,6 +2147,19 @@ def generate_m2_diagnostics_report(
         lines.append(_markdown_table(imp_disp[["feature", "coefficient"]]))
         lines.append("")
         lines.append(f"![Feature importance]({fig_prefix}/m2_feature_importance.png)")
+    lines.extend(["", "## Architecture Benchmark (train vs test AUC)", ""])
+    if not arch_bench.empty:
+        bench_disp = arch_bench.copy()
+        for col in ("train_auc", "test_auc"):
+            if col in bench_disp.columns:
+                bench_disp[col] = bench_disp[col].map(lambda x: _fmt_num(x))
+        lines.append(
+            "Compares legacy global logistic regression against enriched features and per-asset heads."
+        )
+        lines.append("")
+        lines.append(_markdown_table(bench_disp))
+    else:
+        lines.append("_Architecture benchmark not available._")
     lines.extend(["", "## Metrics by Asset", ""])
     if not by_asset.empty:
         lines.append(_markdown_table(by_asset.round(4)))
@@ -2183,6 +2262,16 @@ def generate_companion_reports(
         generate_market_regime_report(rs, reports_root / "market_regime_analysis.md", mode_name="long_only")
     if m3d:
         generate_m3_allocation_report(m3d, reports_root / "m3_allocation_analysis.md", mode_name="long_only")
+    evald = getattr(long_mode, "eval_summary", None) or {}
+    if evald:
+        from src.evaluation import generate_evaluation_report
+
+        generate_evaluation_report(
+            evald,
+            reports_root / "evaluation_analysis.md",
+            mode_name="long_only",
+            cfg=cfg,
+        )
 
 
 def generate_dual_mode_report(
@@ -2464,6 +2553,7 @@ def run_diagnostics(
         from src.regime_analysis import run_regime_analysis
 
         feature_cols = get_feature_columns(panel.reset_index())
+        feature_cols = [c for c in feature_cols if c in panel.columns]
         train_proba = train_panel.loc[train_panel["M1_signal"] != 0, "p_success"]
         factor_summary = run_factor_analysis(
             panel,
@@ -2487,7 +2577,7 @@ def run_diagnostics(
         )
         if m2_model is not None:
             m2_deep_summary = run_m2_deep_diagnostics(
-                test_panel, m2_model, cfg, cfg_threshold, output_dir
+                test_panel, m2_model, cfg, cfg_threshold, output_dir, train_panel=train_panel
             )
             if m2_deep_summary.get("m2_metrics"):
                 m2_metrics.update(

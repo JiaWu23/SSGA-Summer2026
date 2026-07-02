@@ -2,6 +2,8 @@
 
 Standalone buy-and-hold performance for each ETF in the universe, plus documentation of all data inputs.
 
+**Branch context:** Asset-level buy-and-hold tables are unchanged vs `main`; the branch adds strategy overlays (M1 / ECDF) in charts and links factor/regime analysis in [branch_update_vitaly_week5.md](../branch_update_vitaly_week5.md).
+
 **Research use only — not investment advice.**
 
 ## Data & Components Used

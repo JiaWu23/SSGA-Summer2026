@@ -97,6 +97,10 @@ class M2Config:
     type: str = "logistic_regression"
     threshold: float = 0.55
     calibrate: bool = True
+    architecture: str = "global"
+    min_asset_samples: int = 80
+    use_meta_features: bool = True
+    include_asset_encoding: bool = True
 
 
 @dataclass
@@ -105,6 +109,14 @@ class M3Config:
 
     mode: str = "linear"
     threshold: float | None = None
+
+
+@dataclass
+class EvaluationConfig:
+    walk_forward_enabled: bool = True
+    walk_forward_first_train_end: str = "2014-12-31"
+    walk_forward_test_years: int = 2
+    transaction_cost_bps_grid: tuple[float, ...] = (0.0, 5.0, 10.0, 25.0)
 
 
 @dataclass
@@ -168,6 +180,16 @@ class PipelineConfig:
         if isinstance(m3, dict) and m3:
             return M3Config(**m3)
         return M3Config(mode=self.portfolio.sizing_mode, threshold=self.m2.threshold)
+
+    @property
+    def evaluation(self) -> EvaluationConfig:
+        ev = self._raw.get("evaluation", {})
+        if isinstance(ev, dict) and ev:
+            grid = ev.get("transaction_cost_bps_grid")
+            if grid is not None:
+                ev = {**ev, "transaction_cost_bps_grid": tuple(float(x) for x in grid)}
+            return EvaluationConfig(**ev)
+        return EvaluationConfig()
 
     def path(self, key: str, base_dir: Path | None = None) -> Path:
         root = base_dir or Path.cwd()

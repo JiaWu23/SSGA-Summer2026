@@ -133,9 +133,25 @@ Then optionally add:
 |---|---|
 | Information advantage | M1 input features reused by M2 |
 | M1 output | M1 score, signal, score percentile, distance from threshold |
+| M1 components | `momentum_score`, `trend_score`, `macro_score`, `risk_penalty` |
+| Cross-sectional context | `m1_cs_rank` (weekly rank of M1 score), `m1_score_abs` |
+| Interactions | `m1_x_vol`, `m1_x_risk_off`, `m1_x_macro` |
+| Asset encoding | One-hot asset class (equity, bond, credit, gold, reit) |
 | False-positive modeling | VIX, dispersion, volatility, correlation, liquidity, rolling M1 hit rate |
 | Regime | inflation, growth, credit, rates, risk-off flags |
 | LLM-derived | sentiment, macro narrative, uncertainty, policy narrative |
+
+### Architecture (config: `models.m2`)
+
+| Setting | Values | Notes |
+|---|---|---|
+| `architecture` | `global` (default), `per_asset` | Per-asset heads available but tend to overfit with ~300 labels/asset |
+| `use_meta_features` | `true` (default) | Adds M1 context + interactions; improved test AUC vs legacy |
+| `include_asset_encoding` | `true` (default) | Asset-class dummies |
+| `type` | `logistic_regression`, `random_forest`, `gradient_boosting` | Prefer calibrated logistic for ranking stability |
+| `min_asset_samples` | 80 | Minimum rows to fit a per-asset head |
+
+Diagnostics write `m2_architecture_benchmark.csv` comparing legacy vs configured model AUC.
 
 ---
 

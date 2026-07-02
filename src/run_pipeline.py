@@ -34,6 +34,7 @@ from src.asset_analysis import (
     strategy_overlays_from_mode_results,
 )
 from src.diagnostics import generate_companion_reports, generate_dual_mode_report, run_diagnostics
+from src.evaluation import generate_evaluation_report, run_extended_evaluation, save_evaluation_charts
 from src.feature_engineering import build_features, get_feature_columns, save_model_panel
 from src.labels import add_forward_returns, build_m1_target, build_meta_labels
 from src.model_m1 import build_m1_model, split_train_test
@@ -77,13 +78,14 @@ class ModeRunResult:
     regime_summary: dict | None = None
     m2_deep_summary: dict | None = None
     m3_summary: dict | None = None
+    eval_summary: dict | None = None
 
 
 def _cleanup_stale_reports_root(reports_root: Path) -> None:
     """Remove legacy entries from reports/ root; only final_report.md and subdirs may remain."""
     if not reports_root.exists():
         return
-    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md"}
+    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md", "evaluation_analysis.md"}
     for path in list(reports_root.iterdir()):
         if path.name in allowed:
             continue
@@ -197,6 +199,29 @@ def run_m1_mode(
 
     exposure_chart = diag_summary.get("exposure_chart")
     sens_chart = diag_summary.get("sens_chart")
+
+    eval_summary = None
+    if mode_name == "long_only":
+        _, test_eval = split_train_test(panel, mode_cfg)
+        eval_summary = run_extended_evaluation(
+            base_panel,
+            feature_cols,
+            returns_wide,
+            mode_cfg,
+            production_results=results,
+            test_panel=test_eval,
+        )
+        eval_dir = backtests_dir / "evaluation"
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        wf = eval_summary.get("walk_forward", pd.DataFrame())
+        tc = eval_summary.get("transaction_cost_sensitivity", pd.DataFrame())
+        if not wf.empty:
+            wf.to_csv(eval_dir / "walk_forward_summary.csv", index=False)
+        if not tc.empty:
+            tc.to_csv(eval_dir / "transaction_cost_sensitivity.csv", index=False)
+        fig_dir = backtests_dir / "figures"
+        save_evaluation_charts(wf, tc, fig_dir)
+
     return ModeRunResult(
         mode_name=mode_name,
         allow_short=allow_short,
@@ -214,6 +239,7 @@ def run_m1_mode(
         regime_summary=diag_summary.get("regime_summary"),
         m2_deep_summary=diag_summary.get("m2_deep_summary"),
         m3_summary=diag_summary.get("m3_summary"),
+        eval_summary=eval_summary,
     )
 
 

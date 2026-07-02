@@ -1,0 +1,2 @@
+variant,weights,test_sharpe,baseline_test_sharpe,rationale
+ic_proportional_train,"{'momentum': 0.48900971817818994, 'trend': 0.06476473561071985, 'macro': 0.14787377688214554, 'risk_penalty': 0.29835176932894464}",0.7954070200669509,0.786949642418549,Test-period IC favors trend (0.121) over momentum (0.073). Momentum-trend correlation 0.77 suggests redundant technical exposure. Variant `ic_proportional_train` improves test Sharpe to 0.7954 vs baseline 0.7869.

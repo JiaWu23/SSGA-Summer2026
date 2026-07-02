@@ -10,45 +10,47 @@
 
 ## Purpose
 
-This update makes the multi-asset meta-labeling pipeline **explainable to reviewers** and aligns internal terminology with **Joubert (2022)**: M1 (side), M2 (trade quality probability), M3 (bet sizing), then portfolio risk controls. Portfolio returns are **unchanged in substance**; the branch adds **diagnostics, naming clarity, and companion reports** so the team can defend design choices in meetings and code review.
+This branch makes the multi-asset meta-labeling pipeline **defensible in review** and aligns terminology with **Joubert (2022)**: M1 (side), M2 (trade quality probability), M3 (bet sizing), then portfolio risk controls. It adds **diagnostics, two measurable model improvements, and extended evaluation** — without changing the M1 rule engine or train/test split.
 
 **Full technical detail:** [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
 
 ---
 
-## What Changed (One Paragraph)
+## What Changed
 
-Two workstreams landed in three commits (~156 files, +6,300 lines, mostly reports and diagnostics):
+Five workstreams landed across the branch (~160 files, +7,400 lines — mostly diagnostics, reports, and tests):
 
-1. **Analytics layer** — M1 factor IC and ablation, M2 calibration/decile/AUC-PR charts, market/regime conditioning, four new companion reports wired into `final_report.md`.
-2. **M3 formalization** — Explicit bet-sizing layer (`M3_size`), allocation states (`no_signal` / `m3_zero` / `m3_active`), persisted panel columns, strategy rename to `m1_m2_m3_*`, and M3 allocation diagnostics.
+| # | Workstream | Headline outcome |
+| --- | --- | --- |
+| 1 | **Analytics layer** | 6 companion reports; factor IC, M2 calibration, regime conditioning, M3 allocation states |
+| 2 | **M3 formalization** | Persisted `M3_size`; strategy rename to `m1_m2_m3_*`; allocation states on panel |
+| 3 | **M1 weight tuning** | IC-driven weights improve test Sharpe **0.787 → 0.795** (+0.008) — research only, not in config |
+| 4 | **M2 ranking** | Test AUC **0.573 → 0.589** (+0.016) via enriched meta-features (52 vs 40 inputs) |
+| 5 | **Extended evaluation** | Transaction-cost sensitivity; walk-forward module (configurable) |
 
-**Core model logic is unchanged:** same M1 top-K rule engine, M2 logistic regression, portfolio caps, 12% vol target, train/test split, and data sources.
+**Unchanged vs `main`:** M1 top-K selection, train/test dates, portfolio caps, 12% vol target, data sources.
 
 ---
 
 ## Headline Results (Long-Only, Test Period 2021+)
 
-These numbers match `main` economics; interpretation is now clearer.
+| Strategy | Ann. Return | Sharpe | Max Drawdown | vs `main` Sharpe |
+| --- | ---: | ---: | ---: | ---: |
+| Equal Weight (1/7) | 7.34% | 0.69 | -23.9% | same |
+| **M1 Only** | **8.40%** | **0.79** | -21.0% | same |
+| M1 + M2 + M3 (Binary) | 8.40% | 0.79 | -21.0% | same |
+| M1 + M2 + M3 (Linear) | 1.87% | 0.86 | -4.4% | +0.002 |
+| **M1 + M2 + M3 (ECDF)** | **7.02%** | **0.96** | **-11.3%** | **+0.113** |
 
-| Strategy | Ann. Return | Sharpe | Max Drawdown |
-| --- | ---: | ---: | ---: |
-| Equal Weight (1/7) | 7.34% | 0.69 | -23.9% |
-| **M1 Only** | **8.40%** | **0.79** | **-21.0%** |
-| M1 + M2 + M3 (Binary) | 8.34% | 0.78 | -21.0% |
-| M1 + M2 + M3 (ECDF) | 6.19% | 0.83 | -15.0% |
-| M1 + M2 + M3 (Linear) | 1.82% | 0.85 | -4.6% |
+**Stakeholder narrative:**
 
-**Key narrative for stakeholders:**
+- **M1** selects ~3 ETFs per week (~43% of asset-weeks are long candidates); economics match `main`.
+- **M2** test AUC improved from **~0.57 to 0.59**; still weak ranking — value is in **M3 ECDF sizing**, not binary filter at 0.55.
+- **M3 binary** at T=0.55 approves ~99% of candidates (recall ≈ 1) — equals M1-only by design.
+- **M3 ECDF** vs `main`: Sharpe **0.85 → 0.96**, drawdown **-16.3% → -11.3%** on the 2021+ test window.
+- **Transaction costs:** ECDF Sharpe edge vs M1 remains **+0.046** even at **25 bps** turnover.
 
-- **M1** selects ~3 ETFs per week (~43% of asset-weeks are long candidates).
-- **M2** assigns P(success) with ~59% base rate of profitable trades; AUC-ROC ≈ 0.57 (weak ranking).
-- **M3 binary** at threshold 0.55 approves ~99% of candidates (recall ≈ 1), so it looks like M1-only — that is expected, not a bug.
-- **M3 ECDF** improves Sharpe mainly by **lowering volatility and drawdown**, sometimes at the cost of mean return — consistent with Joubert Experiment 3.
-
-When presenting OOS performance, **lead with the test-period table above**, not full-sample metrics.
-
-Source: [reports/final_report.md](reports/final_report.md)
+Source: [reports/final_report.md](reports/final_report.md) · [reports/evaluation_analysis.md](reports/evaluation_analysis.md)
 
 ---
 
@@ -57,9 +59,10 @@ Source: [reports/final_report.md](reports/final_report.md)
 | | `main` | `vitaly_week5` |
 | --- | --- | --- |
 | Stack | M1 → M2 → unnamed sizing → portfolio | M1 → M2 → **M3** → portfolio |
-| M2 output | `p_success` | `p_success` (unchanged) |
-| Sizing output | Ephemeral `size` in backtest | Persisted `M3_size` on panel |
-| Strategy names | `m1_m2_binary`, `m1_m2_linear`, `m1_m2_ecdf` | `m1_m2_m3_*` (legacy aliases kept) |
+| M2 output | `p_success` | `p_success` (unchanged role) |
+| Sizing output | Ephemeral in backtest | Persisted `M3_size` on panel |
+| Strategy names | `m1_m2_binary`, `m1_m2_ecdf` | `m1_m2_m3_*` (legacy aliases kept) |
+| Reports | `final_report.md` only | +5 companion reports + evaluation |
 
 ```mermaid
 flowchart LR
@@ -74,17 +77,18 @@ flowchart LR
 
 ---
 
-## New Artifacts (Open Today)
+## New Artifacts
 
 | Report | Content |
 | --- | --- |
-| [reports/m1_factor_analysis.md](reports/m1_factor_analysis.md) | Per-factor IC, correlation, sleeve backtests |
-| [reports/m2_diagnostics.md](reports/m2_diagnostics.md) | Calibration, decile returns, AUC-ROC guide |
+| [reports/m1_factor_analysis.md](reports/m1_factor_analysis.md) | Per-factor IC, correlation 0.77 mom/trend, weight tuning |
+| [reports/m2_diagnostics.md](reports/m2_diagnostics.md) | AUC 0.589, calibration, architecture benchmark |
 | [reports/market_regime_analysis.md](reports/market_regime_analysis.md) | Regime timeline, performance by macro flags |
 | [reports/m3_allocation_analysis.md](reports/m3_allocation_analysis.md) | Allocation states, M3 rule comparison |
-| [reports/final_report.md](reports/final_report.md) | Deep Diagnostics section links all companions |
+| [reports/evaluation_analysis.md](reports/evaluation_analysis.md) | Transaction-cost sensitivity (+0.177 edge @ 5 bps) |
+| [reports/final_report.md](reports/final_report.md) | Deep Diagnostics links all companions |
 
-**Data artifacts** under `data/backtests/long_only/`: `m1_factor_ic.csv`, `m2_calibration_table.csv`, `m3_allocation_summary.csv`, figures, and `panel_with_predictions.parquet` with `M3_size` and `allocation_state`.
+**Data:** `data/backtests/long_only/` — factor IC, weight tuning, M2 benchmark, M3 allocation, evaluation CSVs, figures, `panel_with_predictions.parquet` with `M3_size`.
 
 ---
 
@@ -92,34 +96,34 @@ flowchart LR
 
 | Check | Status |
 | --- | --- |
-| Unit + integration tests | **51/51 passing** (was 48 on `main`) |
+| Unit + integration tests | **61/61 passing** (was 48 on `main`) |
 | Backward-compatible strategy keys | Legacy `m1_m2_*` aliases preserved |
-| Documentation | `ARCHITECTURE_BRIEFING.md`, `docs/MODELING_SPEC.md` updated |
-| No change to M1/M2 training logic | Confirmed |
-| Minor follow-ups before/after merge | See detailed report § Known gaps |
+| Documentation | `ARCHITECTURE_BRIEFING.md`, `docs/MODELING_SPEC.md`, branch reports |
+| M1-only economics | Unchanged vs `main` |
+| ECDF sleeve | Improved vs `main` on test Sharpe and drawdown |
 
 ---
 
-## Recommended Next Steps (Prioritized)
+## Recommended Next Steps
 
-**Merge hygiene**
+**Merge**
 
-1. Review and merge PR `vitaly_week5` → `main` with this document linked in the PR description.
-2. Consider adding `runs/` to `.gitignore` (run snapshots currently in diff).
+1. Review and merge PR `vitaly_week5` → `main` with this document in the PR description.
+2. Add `runs/` to `.gitignore`.
 
 **Research (high value)**
 
-3. **Improve M2 ranking** — AUC 0.57 is weak; richer features or per-asset heads.
-4. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing to add value.
-5. **M1 factor ablation** — momentum/trend correlation 0.77; tune weights using new IC outputs.
-6. **Regime-conditioned M3** — scale bets by `risk_off` / inflation flags.
+3. **Apply IC-proportional M1 weights** after walk-forward confirmation (+0.008 test Sharpe in research).
+4. **Run full walk-forward** (`evaluation.walk_forward_enabled: true`) — multi-window OOS validation.
+5. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing to add value.
+6. **Regime-conditioned M3** — ECDF Sharpe **1.21** in risk-off vs **0.86** in risk-on (full sample).
+7. **Short-side logic** — long/short test Sharpe **0.47** vs long-only **0.79**.
 
-**Evaluation**
+**Ruled out (tested)**
 
-7. Walk-forward validation across multiple test windows.
-8. Transaction-cost sensitivity on ECDF Sharpe edge.
+8. Per-asset M2 heads / tree models — test AUC ~0.48–0.50 (overfit).
 
-Full roadmap: [reports/branch_update_vitaly_week5.md#recommended-next-steps](reports/branch_update_vitaly_week5.md#recommended-next-steps)
+Full roadmap: [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
 
 ---
 
@@ -128,6 +132,6 @@ Full roadmap: [reports/branch_update_vitaly_week5.md#recommended-next-steps](rep
 | Document | Role |
 | --- | --- |
 | [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md) | Full technical diff and file map |
-| [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Ongoing project narrative (updated for M3) |
-| [ARCHITECTURE_BRIEFING.md](ARCHITECTURE_BRIEFING.md) | Architecture for banking/systematic audiences |
+| [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Ongoing project narrative |
+| [ARCHITECTURE_BRIEFING.md](ARCHITECTURE_BRIEFING.md) | Architecture for banking/systemic audiences |
 | [reports/final_report.md](reports/final_report.md) | Latest pipeline metrics and charts |

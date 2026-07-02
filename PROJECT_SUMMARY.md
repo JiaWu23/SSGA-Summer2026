@@ -11,6 +11,20 @@ The project is for **research and education only**. It is not live trading infra
 
 **Branch update vs `main`:** [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md) (executive) · [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md) (technical)
 
+## Branch vs `main` (July 2026)
+
+| Area | `main` | `vitaly_week5` |
+| --- | --- | --- |
+| Explainability | `final_report.md` only | +6 companion reports, Deep Diagnostics |
+| M3 layer | Implicit sizing | Formal M3, `M3_size` on panel |
+| M2 test AUC | ~0.573 (40 features) | **0.589** (52 enriched features) |
+| ECDF test Sharpe (2021+) | 0.851 | **0.964** (+0.113) |
+| M1 weight tuning | — | IC-proportional → Sharpe **0.795** vs **0.787** (research) |
+| Evaluation | — | TC sensitivity; walk-forward module |
+| Tests | 48 | **61** |
+
+M1-only economics are **unchanged**; ECDF improves because richer M2 features change `p_success` and therefore ECDF bet fractions.
+
 ## Current State
 
 The current best production-like interpretation is the **long-only** sleeve. Long/short is still run for research comparison, but shorts have generally hurt results in this ETF universe. The headline metrics below are **full sample (train + test)** unless explicitly labeled otherwise.
@@ -21,13 +35,13 @@ The current best production-like interpretation is the **long-only** sleeve. Lon
 | **M1 Only, long-only** | **7.32%** | **0.70** | **-21.00%** | Nearly benchmark return with much lower drawdown |
 | M1 + M2 + M3 (Binary) | 7.38% | 0.71 | -21.00% | Binary M3 at T=0.55 ≈ M1-only (recall ≈ 1) |
 | M1 + M2 + M3 (Linear) | 1.77% | 0.84 | -5.11% | Very defensive sizing; high Sharpe but too little return |
-| M1 + M2 + M3 (ECDF) | 6.30% | 0.92 | -17.36% | Best risk-adjusted variant with meaningful return |
+| M1 + M2 + M3 (ECDF) | 6.54% | 0.96 | -16.26% | Best risk-adjusted variant; **+0.113 test Sharpe vs `main` ECDF (0.85)** |
 
 Main takeaway: **M1 is close to equal-weight on return while improving Sharpe and cutting drawdown roughly in half. M3 ECDF sizing is the main risk-control layer — not M2 as a hard filter at the current threshold.**
 
 Reviewer caveat: the equal-weight benchmark is shown with 0 bps transaction costs, while strategy variants pay the configured 5 bps turnover cost. M1's average gross exposure is about 81%, not 100%, so the result should be framed as similar return with lower deployed risk and drawdown, not as strong positive excess return.
 
-The generated final report separates **full-sample** and **test-period** portfolio metrics. On the 2021+ long-only test window, M1-only reports 8.40% annualized return / 0.79 Sharpe versus equal-weight at 7.34% / 0.69; M1+M2+M3 ECDF reports 6.19% / 0.83.
+The generated final report separates **full-sample** and **test-period** portfolio metrics. On the 2021+ long-only test window, M1-only reports 8.40% annualized return / 0.79 Sharpe versus equal-weight at 7.34% / 0.69; M1+M2+M3 ECDF reports 7.02% / **0.96** Sharpe (vs **0.85** on `main`).
 
 ## How the Pipeline Works
 
@@ -89,7 +103,7 @@ P(M1 trade is profitable over the forward 4-week label horizon)
 
 M2 output is **`p_success` only**. Threshold approval (`predicted_meta_label`) is a diagnostic M3 preview, not an M2 model output.
 
-M2 is not currently a strong standalone classifier (test AUC-ROC ≈ 0.57). Its value is better understood as **input to M3 sizing**:
+M2 is not currently a strong standalone classifier (test AUC-ROC ≈ **0.589**, up from **~0.573** on `main` with legacy features). Its value is better understood as **input to M3 sizing**:
 
 - M2 provides calibrated probabilities for continuous bet sizing.
 - At threshold 0.55, recall ≈ 1 — binary M3 approves nearly all candidates.
@@ -106,7 +120,7 @@ M3 is the **bet-sizing layer** (Joubert framework). It maps `p_success` to `M3_s
 
 Allocation states on the panel: `no_signal` (M1=0), `m3_zero` (candidate rejected by sizing), `m3_active` (positive bet fraction).
 
-See [reports/m3_allocation_analysis.md](reports/m3_allocation_analysis.md).
+See [reports/m3_allocation_analysis.md](reports/m3_allocation_analysis.md). See [reports/evaluation_analysis.md](reports/evaluation_analysis.md) for transaction-cost sensitivity (ECDF edge **+0.177** Sharpe @ 5 bps, **+0.046** @ 25 bps vs M1-only on test window).
 
 ## Methods Tried and Insights
 
@@ -205,20 +219,21 @@ For presentations, lead with:
 
 - Data are research-grade (`yfinance`, FRED), not point-in-time institutional feeds.
 - Data provenance and ETL details are documented in `DATA_SOURCES_AND_ETL.md`; reviewers should start there for source, cache, validation, and proxy-fallback behavior.
-- M2 AUC is modest (~0.57); it is useful for M3 sizing input, not a strong classifier yet.
+- M2 AUC is modest (~**0.59**); it is useful for M3 sizing input, not a strong classifier yet.
 - Binary M3 at T=0.55 adds little filtering (recall ≈ 1).
 - Long/short mode underperforms; short-side signal quality needs separate work.
 - Results are historical simulations and do not include capacity, market impact, borrow, tax, or live execution constraints.
-- Some improvements are based on full-sample diagnostics; production-quality validation would require walk-forward or purged cross-validation.
+- Some improvements are based on full-sample diagnostics; walk-forward module is available (`evaluation.walk_forward_enabled`) but requires a full pipeline run (~20 min).
 
 ## Suggested Next Work
 
-1. Add walk-forward validation for top-K, volatility target, and M3 sizing mode.
-2. Improve M2 ranking (AUC) with richer features or per-asset heads.
-3. Sweep binary M3 threshold to find meaningful rejection rate vs Sharpe tradeoff.
-4. Use factor IC/ablation outputs to tune M1 weights (momentum/trend overlap).
-5. Regime-conditioned M3 sizing using `risk_off` / inflation flags.
-6. Improve short-side logic separately rather than forcing long/short symmetry.
-7. Replace research data with institutional point-in-time data before making any real-world claims.
+1. **Apply IC-proportional M1 weights** after walk-forward confirmation (+0.008 test Sharpe in research).
+2. **Run full walk-forward** with `evaluation.walk_forward_enabled: true`.
+3. **M3 threshold sweep** — T=0.55 approves ~99% of trades (recall ≈ 1).
+4. **Regime-conditioned M3** — ECDF Sharpe 1.21 in risk-off vs 0.86 in risk-on (full sample).
+5. Improve short-side logic separately (long/short test Sharpe 0.47 vs long-only 0.79).
+6. Replace research data with institutional point-in-time data before external claims.
+
+**Ruled out (tested on branch):** per-asset M2 heads and tree models (test AUC ~0.48–0.50, overfit).
 
 See [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md) for the full prioritized roadmap.

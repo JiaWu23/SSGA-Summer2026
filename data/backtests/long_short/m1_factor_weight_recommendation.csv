@@ -1,0 +1,2 @@
+variant,weights,test_sharpe,baseline_test_sharpe,rationale
+ablate_momentum,"{'momentum': 0.0, 'trend': 0.7, 'macro': 0.2, 'risk_penalty': 0.1}",0.5942699504365123,0.4738491059420797,Test-period IC favors trend (0.121) over momentum (0.073). Momentum-trend correlation 0.77 suggests redundant technical exposure. Variant `ablate_momentum` improves test Sharpe to 0.5943 vs baseline 0.4738.

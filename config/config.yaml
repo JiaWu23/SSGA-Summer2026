@@ -78,9 +78,19 @@ models:
     type: logistic_regression
     threshold: 0.55
     calibrate: true
+    architecture: global
+    min_asset_samples: 80
+    use_meta_features: true
+    include_asset_encoding: true
   m3:
     mode: linear
     threshold: 0.55
+
+evaluation:
+  walk_forward_enabled: true
+  walk_forward_first_train_end: "2014-12-31"
+  walk_forward_test_years: 2
+  transaction_cost_bps_grid: [0, 5, 10, 25]
 
 portfolio:
   allow_short: true

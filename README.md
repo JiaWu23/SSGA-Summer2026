@@ -18,13 +18,15 @@ Current headline result (**full sample: train + test, unless noted**): the **lon
 | --- | ---: | ---: | ---: |
 | Equal Weight 1/7 | 7.36% | 0.57 | -39.44% |
 | **M1 Only, long-only** | **7.32%** | **0.70** | **-21.00%** |
-| M1 + M2 ECDF | 6.51% | 0.91 | -18.80% |
+| M1 + M2 + M3 ECDF | 6.54% | 0.96 | -16.26% |
 
-The practical interpretation is: **M1 selects opportunities; M2 shapes exposure and drawdown.** M1-only is currently the return-oriented sleeve, while M1+M2 ECDF is the strongest risk-adjusted variant.
+**vs `main` (test 2021+):** M1-only unchanged (Sharpe 0.79); ECDF Sharpe **0.85 → 0.96** (+0.11); M2 AUC **0.57 → 0.59**. See [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md).
+
+The practical interpretation is: **M1 selects opportunities; M2/M3 shape exposure and drawdown.** M1-only is the return-oriented sleeve; M1+M2+M3 ECDF is the strongest risk-adjusted variant.
 
 Reviewer caveat: equal-weight is shown with **0 bps** transaction costs, while strategy variants pay the configured **5 bps** turnover cost. M1 also runs with lower average gross exposure (~81%) than equal-weight, so the headline comparison is best read as risk-efficiency rather than pure excess-return proof.
 
-The generated `reports/final_report.md` now also includes portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% annualized return / 0.79 Sharpe versus equal-weight at 7.34% / 0.69; M1+M2 ECDF reports 6.93% / 0.85.
+The generated `reports/final_report.md` now also includes portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% / 0.79 Sharpe vs equal-weight 7.34% / 0.69; M1+M2+M3 ECDF reports 7.02% / **0.96** Sharpe (vs **0.85** on `main`).
 
 ## Asset Universe
 

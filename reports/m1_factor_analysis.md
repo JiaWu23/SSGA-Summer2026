@@ -2,6 +2,17 @@
 
 **Research use only — not investment advice.**
 
+## vs `main`
+
+| Item | `main` | `vitaly_week5` |
+| --- | --- | --- |
+| Component scores on panel | Not persisted | `momentum_score`, `trend_score`, `macro_score`, `risk_penalty` |
+| Factor IC / ablation | Not available | Test IC: trend **0.121**, momentum **0.073** |
+| Weight tuning | Not available | IC-proportional weights → test Sharpe **0.795** vs baseline **0.787** (+0.008) |
+| Mom–trend correlation | Unknown to reviewers | **0.773** (redundant technical exposure) |
+
+Branch update: [Executive summary](../BRANCH_UPDATE_REPORT.md) · [Technical report](branch_update_vitaly_week5.md)
+
 ## Factor Weights
 
 M1 composite score uses momentum **45%**, trend **25%**, macro **20%**, risk penalty **10%**.
@@ -74,6 +85,28 @@ Each row is a portfolio using only that factor family for top-K selection (risk 
 | ablate_trend | 7.7928% | 0.09480828958789554 | 0.8220 | -21.7232% | -0.21723248023110975 | 0.15048207307685527 | 7.825067799996474 | 0.5963488843813387 |
 | ablate_macro | 6.4507% | 0.09507144503145203 | 0.6785 | -21.0133% | -0.2101325937730114 | 0.08945231363731157 | 4.651520309140202 | 0.5750507099391481 |
 | ablate_risk_penalty | 7.3412% | 0.10163519089115651 | 0.7223 | -20.2830% | -0.20282995973854834 | 0.09425142924051848 | 4.901074320506961 | 0.5821501014198783 |
+
+## Weight Tuning (IC + ablation inspired)
+
+Compares preset and grid-searched M1 factor weights. Grid search selects by **train** Sharpe; test columns are out-of-sample. High momentum–trend correlation suggests shifting weight toward the stronger test-period IC factor (typically trend).
+
+### Recommended weights (research suggestion — not applied to config)
+
+- **Variant:** `ic_proportional_train`
+- **Weights:** momentum 49%, trend 6%, macro 15%, risk penalty 30%
+- **Rationale:** Test-period IC favors trend (0.121) over momentum (0.073). Momentum-trend correlation 0.77 suggests redundant technical exposure. Variant `ic_proportional_train` improves test Sharpe to 0.7954 vs baseline 0.7869.
+
+| variant | description | momentum | trend | macro | risk_penalty | train_ann_return | train_sharpe | train_max_drawdown | test_ann_return | test_sharpe | test_max_drawdown |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline | Current config weights | 0.4500 | 0.2500 | 0.2000 | 0.1000 | 6.8820% | 0.6663 | -20.7122% | 8.4044% | 0.7869 | -21.0040% |
+| ic_proportional_train | Train non-negative IC normalized to sum to 1 | 0.4890 | 0.0648 | 0.1479 | 0.2984 | 6.7587% | 0.7520 | -20.6323% | 7.2172% | 0.7954 | -16.7152% |
+| trend_heavy | Shift weight from momentum to trend (mom-trend corr 0.77) | 0.2500 | 0.4500 | 0.2000 | 0.1000 | 6.6762% | 0.6563 | -19.4951% | 7.4559% | 0.7335 | -21.5238% |
+| low_momentum | Moderate momentum reduction with higher trend weight | 0.3000 | 0.4000 | 0.2000 | 0.1000 | 7.0699% | 0.6933 | -20.2765% | 7.5267% | 0.7345 | -20.9765% |
+| ablate_momentum | Zero momentum weight; trend-only technical signal (ablation-style) | 0.0000 | 0.7000 | 0.2000 | 0.1000 | 5.7391% | 0.5705 | -22.0247% | 7.3484% | 0.7384 | -21.0030% |
+| technical_ic_blend | Single technical bucket (88% mom / 12% trend by train IC) | 0.7000 | 0.0000 | 0.2000 | 0.1000 | 7.6724% | 0.7892 | -17.9819% | 8.0635% | 0.7804 | -24.3221% |
+| grid_best_train | Best coarse grid combo by train Sharpe (may overfit train) | 0.6000 | 0.1500 | 0.2000 | 0.0500 | 7.4877% | 0.7539 | -19.3477% | 7.8423% | 0.7467 | -21.3566% |
+
+![Weight tuning test Sharpe](../data/backtests/long_only/figures/m1_weight_tuning_test_sharpe.png)
 
 ## Interaction Term
 
