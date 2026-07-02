@@ -109,19 +109,18 @@ flowchart LR
 **Merge**
 
 1. Review and merge PR `vitaly_week5` → `main` with this document in the PR description.
-2. Add `runs/` to `.gitignore`.
 
 **Research (high value)**
 
-3. **Apply IC-proportional M1 weights** after walk-forward confirmation (+0.008 test Sharpe in research).
-4. **Run full walk-forward** (`evaluation.walk_forward_enabled: true`) — multi-window OOS validation.
-5. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing to add value.
-6. **Regime-conditioned M3** — ECDF Sharpe **1.21** in risk-off vs **0.86** in risk-on (full sample).
-7. **Short-side logic** — long/short test Sharpe **0.47** vs long-only **0.79**.
+2. **Apply IC-proportional M1 weights** after walk-forward confirmation (+0.008 test Sharpe in research).
+3. **Run full walk-forward** (`evaluation.walk_forward_enabled: true`) — multi-window OOS validation.
+4. **M3 threshold sweep** — T=0.55 is too permissive for binary sizing to add value.
+5. **Regime-conditioned M3** — ECDF Sharpe **1.21** in risk-off vs **0.86** in risk-on (full sample).
+6. **Short-side logic** — long/short test Sharpe **0.47** vs long-only **0.79**.
 
 **Ruled out (tested)**
 
-8. Per-asset M2 heads / tree models — test AUC ~0.48–0.50 (overfit).
+7. Per-asset M2 heads / tree models — test AUC ~0.48–0.50 (overfit).
 
 Full roadmap: [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
 

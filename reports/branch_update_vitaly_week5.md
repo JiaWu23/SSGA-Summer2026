@@ -159,22 +159,21 @@ Expanding-window folds (first train end 2014-12-31, 2-year test blocks) are impl
 
 ### Merge & hygiene
 1. Merge PR with [BRANCH_UPDATE_REPORT.md](../BRANCH_UPDATE_REPORT.md) linked.
-2. Add `runs/` to `.gitignore` (local run snapshots).
 
 ### High-value research (prioritized)
-3. **Apply IC-proportional M1 weights** — backtest shows +0.008 test Sharpe; validate on walk-forward before config change.
-4. **Run full walk-forward** with `walk_forward_enabled: true` — confirm ECDF edge is stable across folds (not just 2021+ window).
-5. **M3 threshold sweep** — find binary/linear thresholds with meaningful rejection (current T=0.55 → recall ≈ 1).
-6. **Regime-conditioned M3** — scale ECDF bets by `risk_off` / `inflation_up` (regime report shows heterogeneous Sharpe).
-7. **Short-side M1** — long/short test Sharpe **0.474** vs long-only **0.787**; needs separate signal design.
+2. **Apply IC-proportional M1 weights** — backtest shows +0.008 test Sharpe; validate on walk-forward before config change.
+3. **Run full walk-forward** with `walk_forward_enabled: true` — confirm ECDF edge is stable across folds (not just 2021+ window).
+4. **M3 threshold sweep** — find binary/linear thresholds with meaningful rejection (current T=0.55 → recall ≈ 1).
+5. **Regime-conditioned M3** — scale ECDF bets by `risk_off` / `inflation_up` (regime report shows heterogeneous Sharpe).
+6. **Short-side M1** — long/short test Sharpe **0.474** vs long-only **0.787**; needs separate signal design.
 
 ### Lower priority / ruled out for now
-8. Per-asset M2 heads and tree models — tested, test AUC **~0.48–0.50** (overfit).
-9. Trend-heavy M1 weights — test Sharpe **0.734** (worse than baseline).
+7. Per-asset M2 heads and tree models — tested, test AUC **~0.48–0.50** (overfit).
+8. Trend-heavy M1 weights — test Sharpe **0.734** (worse than baseline).
 
 ### Data & production
-10. Institutional point-in-time data before external claims.
-11. Capacity, borrow, and live execution constraints not modeled.
+9. Institutional point-in-time data before external claims.
+10. Capacity, borrow, and live execution constraints not modeled.
 
 ---
 

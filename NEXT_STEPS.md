@@ -68,7 +68,6 @@ Long/short M1 test Sharpe **0.474** — do not force symmetry with long-side log
 ### 6. Merge Hygiene
 
 - Merge PR with branch reports linked
-- Add `runs/` to `.gitignore`
 
 ### Ruled Out (Tested on Branch)
 
