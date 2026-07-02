@@ -1,0 +1,40 @@
+{
+  "winner": null,
+  "verdict": "reject",
+  "reason": "Winner `vol_bump_0.55_1.15` failed walk-forward IR stability (2/6 positive folds)",
+  "provisional_winner": "vol_bump_0.55_1.15",
+  "provisional_winner_metrics": {
+    "variant": "vol_bump_0.55_1.15",
+    "period": "test",
+    "annualized_return": 0.080658844014323,
+    "sharpe": 0.9631460888581923,
+    "max_drawdown": -0.12951743279281214,
+    "excess_return_vs_benchmark": 0.007265410180261389,
+    "information_ratio": 0.0795347435816057,
+    "mean_gross_exposure": 0.6018335126961485,
+    "annualized_turnover": 9.42577567414971
+  },
+  "baseline": {
+    "variant": "ecdf_baseline",
+    "period": "test",
+    "annualized_return": 0.07020991066292082,
+    "sharpe": 0.9641318559980515,
+    "max_drawdown": -0.11331717685054965,
+    "excess_return_vs_benchmark": -0.0031835231711407896,
+    "information_ratio": -0.10182638550666966,
+    "mean_gross_exposure": 0.5233334893009987,
+    "annualized_turnover": 8.196326673173662
+  },
+  "walk_forward_winner_ir": {
+    "stable_ir": false,
+    "n_folds": 6,
+    "positive_ir_folds": 2,
+    "mean_ir": -0.17048333333333333,
+    "verdict": "unstable"
+  },
+  "gates": {
+    "sharpe_min": 0.95,
+    "return_min": 0.075,
+    "ir_min": 0.0
+  }
+}
