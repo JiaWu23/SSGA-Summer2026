@@ -151,9 +151,11 @@ def strategy_overlays_from_mode_results(mode_results: list[Any]) -> list[Strateg
     overlays: list[StrategyOverlay] = []
     for mode in mode_results:
         mode_label = MODE_LABELS_SHORT.get(mode.mode_name, mode.mode_name)
-        for key, short_name in (("m1_only", "M1"), ("m1_m2_linear", "M1+M2")):
+        for key, short_name in (("m1_only", "M1"), ("m1_m2_m3_linear", "M1+M2+M3"), ("m1_m2_linear", "M1+M2+M3")):
             result = mode.results.get(key)
             if result is None:
+                continue
+            if key == "m1_m2_linear" and "m1_m2_m3_linear" in mode.results:
                 continue
             m = _metrics_for_returns(result.returns)
             overlays.append(

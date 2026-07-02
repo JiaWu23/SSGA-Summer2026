@@ -1,0 +1,10 @@
+period,allocation_state,count,share
+full,no_signal,3944,0.5714285714285714
+full,m3_zero,0,0.0
+full,m3_active,2958,0.42857142857142855
+train,no_signal,2804,0.5714285714285714
+train,m3_zero,0,0.0
+train,m3_active,2103,0.42857142857142855
+test,no_signal,1140,0.5714285714285714
+test,m3_zero,0,0.0
+test,m3_active,855,0.42857142857142855

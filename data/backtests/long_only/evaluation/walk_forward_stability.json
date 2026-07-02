@@ -1,0 +1,22 @@
+{
+  "verdict": "stable_majority",
+  "stable_ecdf_edge": true,
+  "n_folds": 6,
+  "positive_edge_folds": 4,
+  "positive_edge_pct": 0.6666666666666666,
+  "mean_ecdf_edge": 0.17741031336776647,
+  "median_ecdf_edge": 0.11108696184693051,
+  "std_ecdf_edge": 0.3481897466218407,
+  "mean_ecdf_sharpe": 0.9288688626613104,
+  "mean_m1_sharpe": 0.7514585492935439,
+  "mean_equal_weight_sharpe": 0.7278131014221412,
+  "ecdf_beats_equal_weight_folds": 3,
+  "pre_production_mean_edge": 0.24310719282217466,
+  "pre_production_positive_folds": 2,
+  "pre_production_n_folds": 3,
+  "production_mean_edge": 0.1117134339133583,
+  "production_n_folds": 3,
+  "production_only_outlier": false,
+  "mean_m2_auc": 0.5482139634550114,
+  "summary": "ECDF edge is positive in 4/6 folds with mean +0.177 \u2014 stable under a majority-fold criterion."
+}

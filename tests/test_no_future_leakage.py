@@ -18,7 +18,7 @@ def test_train_test_no_overlap(cfg, synthetic_panel):
 
 def test_feature_matrix_excludes_labels(synthetic_panel):
     feature_cols = get_feature_columns(synthetic_panel)
-    forbidden = {"forward_return_4w", "m1_target", "meta_label", "trade_return"}
+    forbidden = {"forward_return_4w", "m1_target", "meta_label", "trade_return", "M3_size", "allocation_state"}
     assert forbidden.isdisjoint(set(feature_cols))
 
 

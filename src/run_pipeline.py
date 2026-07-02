@@ -33,11 +33,13 @@ from src.asset_analysis import (
     generate_asset_component_report,
     strategy_overlays_from_mode_results,
 )
-from src.diagnostics import generate_dual_mode_report, run_diagnostics
+from src.diagnostics import generate_companion_reports, generate_dual_mode_report, run_diagnostics
+from src.evaluation import generate_evaluation_report, run_extended_evaluation, save_evaluation_charts
 from src.feature_engineering import build_features, get_feature_columns, save_model_panel
 from src.labels import add_forward_returns, build_m1_target, build_meta_labels
 from src.model_m1 import build_m1_model, split_train_test
 from src.model_m2 import fit_m2, predict_m2
+from src.model_m3 import attach_m3_to_panel
 from src.research_logger import ResearchLogger
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -72,13 +74,18 @@ class ModeRunResult:
     per_asset_ic: pd.DataFrame | None = None
     m1_exposure_chart_rel: str | None = None
     m1_sens_chart_rel: str | None = None
+    factor_summary: dict | None = None
+    regime_summary: dict | None = None
+    m2_deep_summary: dict | None = None
+    m3_summary: dict | None = None
+    eval_summary: dict | None = None
 
 
 def _cleanup_stale_reports_root(reports_root: Path) -> None:
     """Remove legacy entries from reports/ root; only final_report.md and subdirs may remain."""
     if not reports_root.exists():
         return
-    allowed = {"final_report.md", "final", "mode_comparison", "assets"}
+    allowed = {"final_report.md", "final", "mode_comparison", "assets", "m1_factor_analysis.md", "m2_diagnostics.md", "market_regime_analysis.md", "m3_allocation_analysis.md", "evaluation_analysis.md", "walk_forward_analysis.md"}
     for path in list(reports_root.iterdir()):
         if path.name in allowed:
             continue
@@ -135,11 +142,18 @@ def run_m1_mode(
     m1_signals = m1.predict_signal(X_panel)
     m1_scores = m1.predict_score(X_panel)
     m1_conviction = m1.predict_conviction(X_panel)
+    m1_components = m1.predict_component_scores(X_panel)
     panel = build_meta_labels(panel, m1_signals, m1_scores, mode_cfg)
     panel["M1_conviction"] = m1_conviction.reindex(panel.index).fillna(0.0)
+    for col in m1_components.columns:
+        panel[col] = m1_components[col].reindex(panel.index)
 
     m2_model, _ = fit_m2(panel, mode_cfg)
     panel = predict_m2(m2_model, panel, mode_cfg)
+
+    train, test = split_train_test(panel, mode_cfg)
+    train_proba = train.loc[train["M1_signal"] != 0, "p_success"]
+    panel = attach_m3_to_panel(panel, mode_cfg, train_proba=train_proba)
 
     predictions_dir = root / mode_cfg.paths.predictions / mode_name
     predictions_dir.mkdir(parents=True, exist_ok=True)
@@ -160,6 +174,26 @@ def run_m1_mode(
     for name, res in results.items():
         res.returns.to_frame().to_parquet(backtests_dir / f"{name}_returns.parquet")
 
+    m1_weight_wf = pd.DataFrame()
+    m1_weight_decision: dict[str, Any] = {}
+    if mode_name == "long_only":
+        from src.factor_analysis import run_m1_weight_walk_forward_validation
+
+        logger.info("Running M1 IC-proportional weight walk-forward validation")
+        m1_weight_wf, m1_weight_decision = run_m1_weight_walk_forward_validation(
+            base_panel, feature_cols, returns_wide, mode_cfg
+        )
+        eval_dir = backtests_dir / "evaluation"
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        if not m1_weight_wf.empty:
+            m1_weight_wf.to_csv(eval_dir / "m1_weight_walk_forward.csv", index=False)
+        if m1_weight_decision:
+            import json
+
+            (eval_dir / "m1_weight_walk_forward_decision.json").write_text(
+                json.dumps(m1_weight_decision, indent=2)
+            )
+
     diag_summary = run_diagnostics(
         results,
         panel,
@@ -169,6 +203,9 @@ def run_m1_mode(
         cfg=mode_cfg,
         returns_wide=returns_wide,
         train_panel=train,
+        m1_model=m1,
+        m2_model=m2_model,
+        m1_weight_decision=m1_weight_decision or None,
     )
 
     short_pct = (m1_signals == -1).mean() * 100
@@ -183,6 +220,39 @@ def run_m1_mode(
 
     exposure_chart = diag_summary.get("exposure_chart")
     sens_chart = diag_summary.get("sens_chart")
+
+    eval_summary = None
+    if mode_name == "long_only":
+        _, test_eval = split_train_test(panel, mode_cfg)
+        eval_summary = run_extended_evaluation(
+            base_panel,
+            feature_cols,
+            returns_wide,
+            mode_cfg,
+            production_results=results,
+            test_panel=test_eval,
+            m1_weight_walk_forward=m1_weight_wf,
+            m1_weight_decision=m1_weight_decision or None,
+        )
+        eval_dir = backtests_dir / "evaluation"
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        wf = eval_summary.get("walk_forward", pd.DataFrame())
+        tc = eval_summary.get("transaction_cost_sensitivity", pd.DataFrame())
+        if not wf.empty:
+            wf.to_csv(eval_dir / "walk_forward_summary.csv", index=False)
+        if not tc.empty:
+            tc.to_csv(eval_dir / "transaction_cost_sensitivity.csv", index=False)
+        wf_m1 = eval_summary.get("m1_weight_walk_forward", pd.DataFrame())
+        if not wf_m1.empty:
+            wf_m1.to_csv(eval_dir / "m1_weight_walk_forward.csv", index=False)
+        m1_dec = eval_summary.get("m1_weight_decision")
+        if m1_dec:
+            import json
+
+            (eval_dir / "m1_weight_walk_forward_decision.json").write_text(json.dumps(m1_dec, indent=2))
+        fig_dir = backtests_dir / "figures"
+        save_evaluation_charts(wf, tc, fig_dir)
+
     return ModeRunResult(
         mode_name=mode_name,
         allow_short=allow_short,
@@ -196,6 +266,11 @@ def run_m1_mode(
         per_asset_ic=diag_summary.get("per_asset_ic"),
         m1_exposure_chart_rel=f"final/{mode_name}/figures/{exposure_chart}" if exposure_chart else None,
         m1_sens_chart_rel=f"final/{mode_name}/figures/{sens_chart}" if sens_chart else None,
+        factor_summary=diag_summary.get("factor_summary"),
+        regime_summary=diag_summary.get("regime_summary"),
+        m2_deep_summary=diag_summary.get("m2_deep_summary"),
+        m3_summary=diag_summary.get("m3_summary"),
+        eval_summary=eval_summary,
     )
 
 
@@ -393,6 +468,7 @@ def run_pipeline(
             effective_end=price_report.effective_end_date,
             asset_analysis_sections=asset_sections,
         )
+        generate_companion_reports(mode_results, reports_root, cfg=cfg)
     else:
         rlog.log_stage("diagnostics", llm_used=False, output_used="skipped report generation (grid search)")
 

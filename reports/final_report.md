@@ -4,6 +4,8 @@ This run executes the pipeline **twice**: once with M1 **long-only** (no short s
 
 **Research use only — not investment advice.**
 
+**Terminology:** See [TERMINOLOGY.md](../TERMINOLOGY.md) for plain-language definitions (ETF, Sharpe, ECDF, M1/M2/M3, etc.).
+
 ## Sample Period
 
 | Item | Value |
@@ -85,7 +87,9 @@ Shorter train windows reduce overfitting risk but give fewer M2 labels; varying 
 | `portfolio.transaction_cost_bps` | 5 | Round-trip cost per unit turnover; higher values drag net returns |
 | `portfolio.max_gross_exposure` | 1.0 | Cap on sum of absolute weights |
 | `portfolio.max_abs_asset_weight` | 0.25 | Per-asset weight ceiling |
-| `portfolio.sizing_mode` | linear | How M2 probability maps to position size (binary / linear / ecdf) |
+| `portfolio.sizing_mode` | linear | Default M3 bet-sizing rule (binary / linear / ecdf) |
+| `models.m3.mode` | linear | M3 sizing rule applied to M2 probabilities (Joubert bet-sizing layer) |
+| `models.m3.threshold` | 0.55 | M3 binary threshold T (all-or-nothing sizing only) |
 | `portfolio.vol_target_ann` | 0.12 | Annualized vol target for gross scaling (null disables) |
 | `portfolio.vol_target_lookback_weeks` | 26 | Trailing window for realized vol estimate |
 
@@ -225,9 +229,9 @@ M1 outputs three signal types per asset-week: **short (−1)**, **flat (0)**, or
 
 | M1 Signal | Observations | Share | Labeled Trades | M1 Hit Rate | Mean Trade Return | M2 Approval Rate | Hit Rate (M2 Approved) | M2 Precision | M2 Recall | M2 F1 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Short (−1) | 855 | 42.8571% | 855 | 40.9357% | -0.2784% | 0.2339% | 100.0000% | 1.0000 | 0.0057 | 0.0114 |
+| Short (−1) | 855 | 42.8571% | 855 | 40.9357% | -0.2784% | 0.1170% | 0.0000% | 0.0000 | 0.0000 | 0.0000 |
 | Flat (0) | 285 | 14.2857% | 0 | — | — | — | — | — | — | — |
-| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 65.4971% | 57.5000% | 0.5750 | 0.6389 | 0.6053 |
+| Long (+1) | 855 | 42.8571% | 855 | 58.9474% | 0.8266% | 58.3626% | 57.1142% | 0.5711 | 0.5655 | 0.5683 |
 
 ![M2 by M1 signal — Long / Short](final/long_short/m2_m1_signal_analysis.png)
 ## M1 Mode Comparison (M1 Only)
@@ -287,9 +291,10 @@ These metrics cover the full effective panel, including train and test periods. 
 | Equal Weight (1/7) | 7.3625% | 12.8982% | 0.5708 | -39.4430% | 0.0000% | 0.0000 | 55.9838% |
 | 60/40 Benchmark | 6.5640% | 13.2675% | 0.4947 | -43.1363% | -0.7984% | -0.2785 | 56.4909% |
 | M1 Only | 7.3198% | 10.4263% | 0.7021 | -21.0040% | -0.0426% | -0.0413 | 58.8235% |
-| M1 + M2 (Binary) | 7.1641% | 10.3440% | 0.6926 | -23.4770% | -0.1984% | -0.0609 | 58.8235% |
-| M1 + M2 (Linear) | 1.7978% | 2.1391% | 0.8404 | -5.4396% | -5.5647% | -0.5465 | 58.9249% |
-| M1 + M2 (ECDF) | 6.5142% | 7.1713% | 0.9084 | -18.8025% | -0.8483% | -0.1530 | 59.5335% |
+| M1 + M2 + M3 (Binary threshold) | 7.3967% | 10.4272% | 0.7094 | -21.0040% | 0.0342% | -0.0324 | 58.9249% |
+| M1 + M2 + M3 (Linear) | 1.7745% | 2.1272% | 0.8342 | -4.9748% | -5.5879% | -0.5481 | 58.9249% |
+| M1 + M2 + M3 (ECDF) | 6.5362% | 6.7742% | 0.9649 | -16.2600% | -0.8263% | -0.1505 | 59.6349% |
+| M1 + M2 + M3 (Passthrough diagnostic) | 4.9992% | 6.7056% | 0.7455 | -14.6181% | -2.3633% | -0.3379 | 58.7221% |
 
 ### Test-Period Strategy Metrics
 
@@ -300,9 +305,10 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | Equal Weight (1/7) | 7.3393% | 10.7090% | 0.6853 | -23.8984% | 0.0000% | 0.0000 | 54.3860% |
 | 60/40 Benchmark | 5.1616% | 10.8912% | 0.4739 | -25.8267% | -2.1777% | -0.8578 | 53.6842% |
 | M1 Only | 8.4044% | 10.6797% | 0.7869 | -21.0040% | 1.0651% | 0.2005 | 59.6491% |
-| M1 + M2 (Binary) | 8.4044% | 10.6797% | 0.7869 | -21.0040% | 1.0651% | 0.2005 | 59.6491% |
-| M1 + M2 (Linear) | 1.9244% | 2.2433% | 0.8579 | -4.7374% | -5.4149% | -0.6536 | 59.2982% |
-| M1 + M2 (ECDF) | 6.9321% | 8.1433% | 0.8513 | -16.2947% | -0.4072% | -0.1122 | 59.6491% |
+| M1 + M2 + M3 (Binary threshold) | 8.4044% | 10.6797% | 0.7869 | -21.0040% | 1.0651% | 0.2005 | 59.6491% |
+| M1 + M2 + M3 (Linear) | 1.8668% | 2.1715% | 0.8597 | -4.4004% | -5.4725% | -0.6565 | 60.0000% |
+| M1 + M2 + M3 (ECDF) | 7.0210% | 7.2822% | 0.9641 | -11.3317% | -0.3184% | -0.1018 | 59.2982% |
+| M1 + M2 + M3 (Passthrough diagnostic) | 5.4205% | 6.7350% | 0.8048 | -13.9133% | -1.9188% | -0.3919 | 59.6491% |
 
 ### Charts (Long Only (no shorts))
 
@@ -326,9 +332,14 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | Precision | 0.5895 | Approved trades that were actually profitable |
 | Recall | 1.0000 | Profitable trades that M2 approved |
 | F1 Score | 0.7417 | Balance of precision and recall |
-| AUC | 0.5713 | Ranking quality of M2 probabilities |
-| Brier Score | 0.2404 | Probability calibration error (lower is better) |
+| AUC-ROC | 0.5884 | Ranking quality: P(random winner scored higher than random loser) |
+| AUC-PR | 0.6634 | Precision-recall AUC; more informative when base rate ≠ 50% |
+| Base Rate | 58.9474% | Fraction of M1 trades that beat the cost hurdle |
+| Brier Score | 0.2403 | Probability calibration error (lower is better) |
+| Mean P (winners) | 0.5973 | Average M2 probability on profitable trades |
+| Mean P (losers) | 0.5934 | Average M2 probability on unprofitable trades |
 | Mean IC | 0.1061 | Spearman rank correlation of M1 scores vs forward returns |
+| Note | — | Binary M3 at this threshold approves all trades; strategy equals M1-only. |
 
 ## Results: Long / Short
 
@@ -343,9 +354,10 @@ These metrics cover the full effective panel, including train and test periods. 
 | Equal Weight (1/7) | 7.3625% | 12.8982% | 0.5708 | -39.4430% | 0.0000% | 0.0000 | 55.9838% |
 | 60/40 Benchmark | 6.5640% | 13.2675% | 0.4947 | -43.1363% | -0.7984% | -0.2785 | 56.4909% |
 | M1 Only | 1.4041% | 6.9145% | 0.2031 | -14.8093% | -5.9583% | -0.3971 | 51.8256% |
-| M1 + M2 (Binary) | 2.4944% | 6.2918% | 0.3965 | -23.0807% | -4.8681% | -0.4840 | 29.9189% |
-| M1 + M2 (Linear) | 0.6277% | 1.1238% | 0.5585 | -4.2153% | -6.7348% | -0.5987 | 57.0994% |
-| M1 + M2 (ECDF) | 5.3393% | 6.8651% | 0.7777 | -11.0232% | -2.0231% | -0.2108 | 57.8093% |
+| M1 + M2 + M3 (Binary threshold) | 1.7598% | 6.1142% | 0.2878 | -24.3312% | -5.6026% | -0.5410 | 30.5274% |
+| M1 + M2 + M3 (Linear) | 0.5431% | 1.0393% | 0.5226 | -4.2139% | -6.8194% | -0.6015 | 58.5193% |
+| M1 + M2 + M3 (ECDF) | 5.2311% | 6.9040% | 0.7577 | -11.7966% | -2.1313% | -0.2115 | 58.4178% |
+| M1 + M2 + M3 (Passthrough diagnostic) | 1.7580% | 6.0327% | 0.2914 | -11.3844% | -5.6045% | -0.4048 | 53.0426% |
 
 ### Test-Period Strategy Metrics
 
@@ -356,9 +368,10 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | Equal Weight (1/7) | 7.3393% | 10.7090% | 0.6853 | -23.8984% | 0.0000% | 0.0000 | 54.3860% |
 | 60/40 Benchmark | 5.1616% | 10.8912% | 0.4739 | -25.8267% | -2.1777% | -0.8578 | 53.6842% |
 | M1 Only | 2.6697% | 5.6340% | 0.4738 | -9.1051% | -4.6697% | -0.4552 | 55.0877% |
-| M1 + M2 (Binary) | 1.9426% | 8.1064% | 0.2396 | -23.0807% | -5.3968% | -0.8286 | 47.7193% |
-| M1 + M2 (Linear) | 0.6238% | 1.4583% | 0.4278 | -4.2015% | -6.7156% | -0.7355 | 58.9474% |
-| M1 + M2 (ECDF) | 5.2136% | 6.8177% | 0.7647 | -11.0232% | -2.1258% | -0.2830 | 59.6491% |
+| M1 + M2 + M3 (Binary threshold) | 0.0737% | 7.6606% | 0.0096 | -24.3312% | -7.2657% | -1.0312 | 44.2105% |
+| M1 + M2 + M3 (Linear) | 0.4500% | 1.3169% | 0.3417 | -4.2139% | -6.8893% | -0.7429 | 58.9474% |
+| M1 + M2 + M3 (ECDF) | 5.0575% | 6.8809% | 0.7350 | -11.7966% | -2.2819% | -0.2950 | 58.5965% |
+| M1 + M2 + M3 (Passthrough diagnostic) | 2.6028% | 5.1863% | 0.5019 | -9.3473% | -4.7366% | -0.4950 | 55.0877% |
 
 ### Charts (Long / Short)
 
@@ -378,12 +391,16 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 
 | Metric | Value | Meaning |
 | --- | --- | --- |
-| Accuracy | 0.5509 | Share of correct meta-label predictions |
-| Precision | 0.5765 | Approved trades that were actually profitable |
-| Recall | 0.3794 | Profitable trades that M2 approved |
-| F1 Score | 0.4576 | Balance of precision and recall |
-| AUC | 0.5796 | Ranking quality of M2 probabilities |
-| Brier Score | 0.2466 | Probability calibration error (lower is better) |
+| Accuracy | 0.5415 | Share of correct meta-label predictions |
+| Precision | 0.5700 | Approved trades that were actually profitable |
+| Recall | 0.3337 | Profitable trades that M2 approved |
+| F1 Score | 0.4210 | Balance of precision and recall |
+| AUC-ROC | 0.5868 | Ranking quality: P(random winner scored higher than random loser) |
+| AUC-PR | 0.5453 | Precision-recall AUC; more informative when base rate ≠ 50% |
+| Base Rate | 49.9415% | Fraction of M1 trades that beat the cost hurdle |
+| Brier Score | 0.2458 | Probability calibration error (lower is better) |
+| Mean P (winners) | 0.5252 | Average M2 probability on profitable trades |
+| Mean P (losers) | 0.5121 | Average M2 probability on unprofitable trades |
 | Mean IC | 0.1061 | Spearman rank correlation of M1 scores vs forward returns |
 
 ### How to read the metrics
@@ -397,6 +414,37 @@ These metrics start at `2021-01-01` and are the cleanest portfolio-level OOS vie
 | **Excess vs EW** | Strategy return minus equal-weight benchmark return |
 | **Info Ratio** | Consistency of outperformance vs equal-weight |
 | **Weekly Hit Rate** | Fraction of weeks with positive net strategy return |
+
+## Deep Diagnostics
+
+Branch update (vs `main`): [Executive summary](../BRANCH_UPDATE_REPORT.md) · [Technical report](branch_update_vitaly_week5.md)
+
+### Branch improvements at a glance (long-only, test 2021+)
+
+| Metric | `main` | `vitaly_week5` | Change |
+| --- | ---: | ---: | ---: |
+| M1-only Sharpe | 0.787 | 0.787 | — |
+| ECDF Sharpe | 0.851 | **0.964** | **+0.113** |
+| ECDF max drawdown | -16.3% | **-11.3%** | +5.0 pp |
+| M2 test AUC-ROC | ~0.573 | **0.589** | +0.016 |
+| Companion reports | 0 | 6 | +6 |
+| Tests passing | 48 | 61 | +13 |
+
+Companion reports provide factor-level, M2 input, regime, M3 allocation, evaluation, and AUC-ROC detail:
+
+- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests
+- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide
+- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance
+- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules
+- [Extended Evaluation](evaluation_analysis.md) — walk-forward folds and transaction-cost sensitivity
+- [Walk-Forward Analysis](walk_forward_analysis.md) — ECDF edge stability across OOS windows
+
+- **M1 factors (test):** strongest IC is `trend_score` (mean IC 0.1210); momentum–trend ρ=0.77 — IC-proportional weights improve M1 test Sharpe to **0.795** vs baseline **0.787** (research only).
+- **M2 AUC-ROC (test, long-only):** **0.5884** (up from **~0.573** on `main` with legacy features) — still weak ranking; value is mainly in M3 ECDF sizing, not M3 binary threshold at 0.55.
+- **Regime:** strategy Sharpe varies by `risk_off` / curve / inflation flags — see regime report.
+- **Walk-forward ECDF edge:** mean **+0.177** Sharpe vs M1-only (**4/6** folds positive) — [Walk-Forward Analysis](walk_forward_analysis.md). Not a 2021-only artifact (pre-2021 mean edge +0.243).
+- **M3 allocation (test):** 42.8571% of asset-weeks are M1 candidates with M3_size > 0 (active bets before portfolio constraints).
+- **M1/M2/M3 stack:** M2 outputs P(success); M3 converts it to bet fraction; M3=0 with M1≠0 means a candidate was rejected by the sizing rule, not absent from M1.
 
 ## Key Takeaways
 

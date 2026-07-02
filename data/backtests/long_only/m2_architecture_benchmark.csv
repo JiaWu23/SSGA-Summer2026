@@ -1,0 +1,3 @@
+variant,model_type,architecture,n_features,n_train,n_test,train_auc,test_auc,asset_heads
+legacy_global,logistic_regression,global,40,2103,855,0.6464227797208024,0.5726665309998644,0
+configured,logistic_regression,global,52,2103,855,0.6460407138373241,0.5890369918147695,0

@@ -53,6 +53,10 @@ class M1Model(ABC):
         scores = self.predict_score(X)
         return _score_to_conviction(scores, getattr(self, "_train_scores", None))
 
+    def predict_component_scores(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Per-factor component scores; rule-based M1 overrides with four families."""
+        return pd.DataFrame(index=X.index)
+
 
 def _score_to_conviction(scores: pd.Series, train_scores: pd.Series | None) -> pd.Series:
     """Map scores to [0, 1] via train ECDF (fallback: cross-sectional rank per date)."""
@@ -152,6 +156,9 @@ class RuleBasedM1(M1Model):
         comps["risk_penalty"] = self._risk_penalty(X)
         comps["macro_score"] = self._asset_class_macro_tilt(X)
         return comps
+
+    def predict_component_scores(self, X: pd.DataFrame) -> pd.DataFrame:
+        return self._component_scores(X)
 
     def predict_score(self, X: pd.DataFrame) -> pd.Series:
         comps = self._component_scores(X)

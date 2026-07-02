@@ -97,6 +97,28 @@ class M2Config:
     type: str = "logistic_regression"
     threshold: float = 0.55
     calibrate: bool = True
+    architecture: str = "global"
+    min_asset_samples: int = 80
+    use_meta_features: bool = True
+    include_asset_encoding: bool = True
+    # Research winner: configured | full_enriched | ic_alignment | etc. (see m2_feature_enrichment)
+    feature_variant: str = "configured"
+
+
+@dataclass
+class M3Config:
+    """Bet-sizing rule (Joubert M3): maps M2 probability to position fraction."""
+
+    mode: str = "linear"
+    threshold: float | None = None
+
+
+@dataclass
+class EvaluationConfig:
+    walk_forward_enabled: bool = True
+    walk_forward_first_train_end: str = "2014-12-31"
+    walk_forward_test_years: int = 2
+    transaction_cost_bps_grid: tuple[float, ...] = (0.0, 5.0, 10.0, 25.0)
 
 
 @dataclass
@@ -153,6 +175,23 @@ class PipelineConfig:
     def m2(self) -> M2Config:
         m2 = self.models.get("m2", {})
         return M2Config(**m2) if isinstance(m2, dict) else m2
+
+    @property
+    def m3(self) -> M3Config:
+        m3 = self.models.get("m3", {})
+        if isinstance(m3, dict) and m3:
+            return M3Config(**m3)
+        return M3Config(mode=self.portfolio.sizing_mode, threshold=self.m2.threshold)
+
+    @property
+    def evaluation(self) -> EvaluationConfig:
+        ev = self._raw.get("evaluation", {})
+        if isinstance(ev, dict) and ev:
+            grid = ev.get("transaction_cost_bps_grid")
+            if grid is not None:
+                ev = {**ev, "transaction_cost_bps_grid": tuple(float(x) for x in grid)}
+            return EvaluationConfig(**ev)
+        return EvaluationConfig()
 
     def path(self, key: str, base_dir: Path | None = None) -> Path:
         root = base_dir or Path.cwd()
@@ -290,4 +329,31 @@ def clone_config_with_m1_allow_short(cfg: PipelineConfig, allow_short: bool) -> 
     data = copy.deepcopy(cfg._raw)
     data.setdefault("models", {}).setdefault("m1", {})["allow_short"] = allow_short
     data.setdefault("portfolio", {})["allow_short"] = allow_short
+    return _build_config(data)
+
+
+def clone_config_with_m1_weights(cfg: PipelineConfig, weights: dict[str, float]) -> PipelineConfig:
+    """Return a copy of config with M1 factor weights replaced."""
+    import copy
+
+    data = copy.deepcopy(cfg._raw)
+    data.setdefault("models", {}).setdefault("m1", {})["weights"] = {k: float(v) for k, v in weights.items()}
+    updated = _build_config(data)
+    validate_split_dates(updated)
+    _validate_portfolio(updated)
+    return updated
+
+
+def clone_config_with_m2_variant(
+    cfg: PipelineConfig,
+    feature_variant: str,
+    **m2_overrides: Any,
+) -> PipelineConfig:
+    """Return a copy of config with M2 feature_variant (and optional M2 overrides)."""
+    import copy
+
+    data = copy.deepcopy(cfg._raw)
+    m2 = data.setdefault("models", {}).setdefault("m2", {})
+    m2["feature_variant"] = feature_variant
+    m2.update(m2_overrides)
     return _build_config(data)

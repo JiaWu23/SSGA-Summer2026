@@ -8,8 +8,32 @@ import numpy as np
 import pandas as pd
 
 from src.config import PipelineConfig
+from src.model_m3 import compute_m3_size, passthrough_m3_size
 from src.portfolio import apply_constraints_by_date, apply_vol_target_wide, weights_to_wide
-from src.position_sizing import SizingMode, compute_sizes
+from src.position_sizing import SizingMode, fit_ecdf
+
+# Canonical strategy keys (Joubert: M3 rule variants)
+STRATEGY_M1_M2_M3_BINARY = "m1_m2_m3_binary"
+STRATEGY_M1_M2_M3_LINEAR = "m1_m2_m3_linear"
+STRATEGY_M1_M2_M3_ECDF = "m1_m2_m3_ecdf"
+STRATEGY_M1_M2_PASSTHROUGH = "m1_m2_passthrough"
+
+# Legacy aliases for backward compatibility
+STRATEGY_ALIASES: dict[str, str] = {
+    "m1_m2_binary": STRATEGY_M1_M2_M3_BINARY,
+    "m1_m2_linear": STRATEGY_M1_M2_M3_LINEAR,
+    "m1_m2_ecdf": STRATEGY_M1_M2_M3_ECDF,
+}
+
+METRICS_TABLE_STRATEGIES = [
+    "equal_weight_1_7",
+    "sixty_forty",
+    "m1_only",
+    STRATEGY_M1_M2_M3_BINARY,
+    STRATEGY_M1_M2_M3_LINEAR,
+    STRATEGY_M1_M2_M3_ECDF,
+    STRATEGY_M1_M2_PASSTHROUGH,
+]
 
 
 @dataclass
@@ -79,28 +103,33 @@ def strategy_weights_from_panel(
     m2_threshold: float | None = None,
     train_sorted: np.ndarray | None = None,
     train_proba: pd.Series | None = None,
+    use_passthrough: bool = False,
 ) -> pd.DataFrame:
     df = panel.reset_index().copy()
     df["date"] = pd.to_datetime(df["date"])
     df = df.set_index(["date", "ticker"])
+    threshold = m2_threshold or cfg.m3.threshold or cfg.m2.threshold
     if use_m2 and "p_success" in df.columns:
-        sizes = compute_sizes(
-            df["p_success"],
-            sizing_mode,
-            threshold=m2_threshold or cfg.m2.threshold,
-            train_proba=train_proba,
-            train_sorted=train_sorted,
-        )
-        df["size"] = sizes.reindex(df.index).fillna(0.0)
+        if use_passthrough:
+            sizes = passthrough_m3_size(df["p_success"])
+        else:
+            sizes = compute_m3_size(
+                df["p_success"],
+                sizing_mode,
+                threshold=threshold,
+                train_proba=train_proba,
+                train_sorted=train_sorted,
+            )
+        df["M3_size"] = sizes.reindex(df.index).fillna(0.0)
     else:
-        df["size"] = 1.0
+        df["M3_size"] = 1.0
 
     if "M1_conviction" in df.columns:
         df["raw_weight"] = (
-            df["M1_signal"] * df["size"] * df["M1_conviction"] * cfg.portfolio.base_budget_per_asset
+            df["M1_signal"] * df["M3_size"] * df["M1_conviction"] * cfg.portfolio.base_budget_per_asset
         )
     else:
-        df["raw_weight"] = df["M1_signal"] * df["size"] * cfg.portfolio.base_budget_per_asset
+        df["raw_weight"] = df["M1_signal"] * df["M3_size"] * cfg.portfolio.base_budget_per_asset
     df["weight"] = apply_constraints_by_date(df, cfg.portfolio)
     w_wide = weights_to_wide(df.reset_index())
     return apply_vol_target_wide(w_wide, returns_wide, cfg.portfolio)
@@ -114,8 +143,6 @@ def run_all_strategies(
 ) -> dict[str, BacktestResult]:
     train_sorted = None
     if train_proba is not None:
-        from src.position_sizing import fit_ecdf
-
         train_sorted = fit_ecdf(train_proba)
 
     tc = cfg.portfolio.transaction_cost_bps
@@ -128,11 +155,12 @@ def run_all_strategies(
     m1_w = strategy_weights_from_panel(panel, returns_wide, cfg, SizingMode.LINEAR, use_m2=False)
     results["m1_only"] = _run_backtest("m1_only", m1_w, returns_wide, tc)
 
-    for mode, key in [
-        (SizingMode.BINARY, "m1_m2_binary"),
-        (SizingMode.LINEAR, "m1_m2_linear"),
-        (SizingMode.ECDF, "m1_m2_ecdf"),
-    ]:
+    strategy_modes = [
+        (SizingMode.BINARY, STRATEGY_M1_M2_M3_BINARY),
+        (SizingMode.LINEAR, STRATEGY_M1_M2_M3_LINEAR),
+        (SizingMode.ECDF, STRATEGY_M1_M2_M3_ECDF),
+    ]
+    for mode, key in strategy_modes:
         w = strategy_weights_from_panel(
             panel,
             returns_wide,
@@ -143,6 +171,21 @@ def run_all_strategies(
             train_sorted=train_sorted,
         )
         results[key] = _run_backtest(key, w, returns_wide, tc)
+
+    w_pass = strategy_weights_from_panel(
+        panel,
+        returns_wide,
+        cfg,
+        SizingMode.LINEAR,
+        use_m2=True,
+        train_proba=train_proba,
+        train_sorted=train_sorted,
+        use_passthrough=True,
+    )
+    results[STRATEGY_M1_M2_PASSTHROUGH] = _run_backtest(STRATEGY_M1_M2_PASSTHROUGH, w_pass, returns_wide, tc)
+
+    for alias, canonical in STRATEGY_ALIASES.items():
+        results[alias] = results[canonical]
 
     return results
 
