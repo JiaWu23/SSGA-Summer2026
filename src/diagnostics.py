@@ -1806,6 +1806,8 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
         "- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules",
         "- [M3 Threshold Analysis](m3_threshold_analysis.md) — binary/linear threshold sweep with rejection vs Sharpe trade-off",
+        "- [IR Attribution Analysis](ir_attribution_analysis.md) — why Info Ratio falls vs equal-weight when M2/M3 added",
+        "- [IR Improvement Research](ir_improvement_research.md) — intervention sweep and adoption verdict",
         "- [Extended Evaluation](evaluation_analysis.md) — walk-forward folds and transaction-cost sensitivity",
         "- [Walk-Forward Analysis](walk_forward_analysis.md) — ECDF edge stability across OOS windows",
         "",

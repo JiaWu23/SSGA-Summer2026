@@ -19,7 +19,7 @@ from src.backtest import (
     run_all_strategies,
 )
 from src.config import EvaluationConfig, PipelineConfig, apply_split_overrides
-from src.diagnostics import m2_classification_metrics, strategy_metrics_on_period
+from src.diagnostics import m2_classification_metrics, strategy_metrics_on_period, information_ratio
 from src.labels import build_meta_labels, get_m2_training_mask
 from src.model_m1 import build_m1_model, split_train_test
 from src.model_m2 import fit_m2, predict_m2
@@ -201,9 +201,26 @@ def run_walk_forward_evaluation(
 
         sm = summary["strategy_metrics"]
         m2m = summary["m2_metrics"]
+        results = summary["results"]
         m1 = sm.get("m1_only", {})
         ecdf = sm.get(STRATEGY_M1_M2_M3_ECDF, {})
         ew = sm.get("equal_weight_1_7", {})
+
+        def _fold_ir(strat_key: str) -> float:
+            res = results.get(strat_key)
+            if res is None:
+                return float("nan")
+            r = res.returns.copy()
+            r.index = pd.to_datetime(r.index)
+            ts = pd.Timestamp(fold_cfg.split.test_start)
+            te = pd.Timestamp(fold_cfg.split.test_end or r.index.max())
+            r = r[(r.index >= ts) & (r.index <= te)]
+            ew_r = results["equal_weight_1_7"].returns.reindex(r.index).fillna(0.0)
+            return information_ratio(r, ew_r)
+
+        m1_ir = _fold_ir("m1_only")
+        ecdf_ir = _fold_ir(STRATEGY_M1_M2_M3_ECDF)
+
         rows.append(
             {
                 **fold,
@@ -215,6 +232,9 @@ def run_walk_forward_evaluation(
                 "ecdf_return_edge_vs_m1": ecdf.get("annualized_return", float("nan"))
                 - m1.get("annualized_return", float("nan")),
                 "equal_weight_sharpe": ew.get("sharpe", float("nan")),
+                "m1_ir": m1_ir,
+                "ecdf_ir": ecdf_ir,
+                "ir_edge_vs_ew": ecdf_ir,
                 "m2_auc": m2m.get("auc", float("nan")),
                 "m2_auc_pr": m2m.get("auc_pr", float("nan")),
                 "m2_n_trades": m2m.get("n_trades", 0),
@@ -222,6 +242,113 @@ def run_walk_forward_evaluation(
         )
 
     return pd.DataFrame(rows)
+
+
+def run_walk_forward_ir_evaluation(
+    base_panel: pd.DataFrame,
+    feature_cols: list[str],
+    returns_wide: pd.DataFrame,
+    cfg: PipelineConfig,
+    *,
+    winner_spec: Any | None = None,
+    eval_cfg: EvaluationConfig | None = None,
+) -> pd.DataFrame:
+    """Walk-forward IR vs EW for ECDF, M1, and optional intervention winner."""
+    from src.backtest import _run_backtest, strategy_weights_from_panel
+    from src.ir_interventions import build_intervention_weights
+    from src.position_sizing import SizingMode
+
+    eval_cfg = eval_cfg or cfg.evaluation
+    if not eval_cfg.walk_forward_enabled:
+        return pd.DataFrame()
+
+    folds = build_walk_forward_folds(base_panel, cfg, eval_cfg)
+    rows: list[dict[str, Any]] = []
+
+    for fold in folds:
+        fold_cfg = apply_split_overrides(
+            cfg,
+            train_end=fold["train_end"],
+            test_start=fold["test_start"],
+            test_end=fold["test_end"],
+        )
+        try:
+            panel, summary = _fit_fold_stack(base_panel, feature_cols, returns_wide, fold_cfg)
+        except (ValueError, KeyError) as exc:
+            logger.warning("Walk-forward IR fold %s failed: %s", fold.get("fold_id"), exc)
+            continue
+
+        results = summary["results"]
+        train, _ = split_train_test(panel, fold_cfg)
+        train_proba = train.loc[train["M1_signal"] != 0, "p_success"]
+        ew_r = results["equal_weight_1_7"].returns
+
+        def _ir(strat: str) -> float:
+            r = results[strat].returns.copy()
+            r.index = pd.to_datetime(r.index)
+            ts = pd.Timestamp(fold_cfg.split.test_start)
+            te = pd.Timestamp(fold_cfg.split.test_end or r.index.max())
+            r = r[(r.index >= ts) & (r.index <= te)]
+            return information_ratio(r, ew_r.reindex(r.index).fillna(0.0))
+
+        row: dict[str, Any] = {
+            **fold,
+            "m1_ir": _ir("m1_only"),
+            "ecdf_ir": _ir(STRATEGY_M1_M2_M3_ECDF),
+            "ir_edge_vs_ew": _ir(STRATEGY_M1_M2_M3_ECDF),
+            "winner_ir": float("nan"),
+            "winner_ir_edge_vs_ew": float("nan"),
+        }
+
+        if winner_spec is not None and winner_spec.kind != "baseline":
+            m1_w = strategy_weights_from_panel(panel, returns_wide, fold_cfg, SizingMode.LINEAR, use_m2=False)
+            ew_w = results["equal_weight_1_7"].weights
+            w = build_intervention_weights(
+                panel,
+                returns_wide,
+                fold_cfg,
+                train_proba,
+                m1_w,
+                ew_w,
+                winner_spec,
+            )
+            tc = fold_cfg.portfolio.transaction_cost_bps
+            bt = _run_backtest(winner_spec.name, w, returns_wide, tc)
+            r = bt.returns.copy()
+            r.index = pd.to_datetime(r.index)
+            ts = pd.Timestamp(fold_cfg.split.test_start)
+            te = pd.Timestamp(fold_cfg.split.test_end or r.index.max())
+            r = r[(r.index >= ts) & (r.index <= te)]
+            wir = information_ratio(r, ew_r.reindex(r.index).fillna(0.0))
+            row["winner_ir"] = wir
+            row["winner_ir_edge_vs_ew"] = wir
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def analyze_walk_forward_ir_stability(
+    wf_ir: pd.DataFrame,
+    *,
+    ir_col: str = "ecdf_ir",
+    min_positive_fold_share: float = 0.5,
+) -> dict[str, Any]:
+    if wf_ir.empty or ir_col not in wf_ir.columns:
+        return {"stable_ir": False, "n_folds": 0, "verdict": "insufficient_data"}
+
+    ir = wf_ir[ir_col].astype(float)
+    positive = int((ir > 0).sum())
+    n = len(ir)
+    mean_ir = float(ir.mean())
+    stable = mean_ir > 0 and (positive / n) >= min_positive_fold_share
+    return {
+        "stable_ir": stable,
+        "n_folds": n,
+        "positive_ir_folds": positive,
+        "mean_ir": mean_ir,
+        "verdict": "stable_majority" if stable else "unstable",
+    }
 
 
 def run_transaction_cost_sensitivity(

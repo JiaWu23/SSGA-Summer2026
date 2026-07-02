@@ -19,6 +19,18 @@ Full strategy walk-forward ran with `walk_forward_enabled: true`. Report: [repor
 
 Walk-forward **rejected** IC-proportional weights — config unchanged at **45/25/20/10**.
 
+## IR vs equal-weight (completed)
+
+Reports: [ir_attribution_analysis.md](reports/ir_attribution_analysis.md) · [ir_improvement_research.md](reports/ir_improvement_research.md)
+
+| Finding | Detail |
+| --- | --- |
+| Why IR drops | ECDF deploys ~52% gross vs EW 100%; lower absolute return vs EW |
+| Holdout best IR | `exposure_renorm_1.10` IR **0.35** but Sharpe **0.78** (fails gate) |
+| Holdout gate pass | `vol_bump_0.55_1.15` IR **0.08**, Sharpe **0.96**, return **8.1%** |
+| Walk-forward | Winner **rejected** — IR positive in only **2/6** folds |
+| **Config** | **Unchanged** — keep ECDF baseline |
+
 ## Recommended next work
 
 1. **Regime-conditioned M3** — edge varies by fold/regime; fold 1 risk-off may need sizing down.
@@ -30,4 +42,5 @@ Walk-forward **rejected** IC-proportional weights — config unchanged at **45/2
 ```bash
 python -m src.walk_forward_research      # strategy walk-forward + reports
 python -m src.m1_weight_research       # M1 IC weight walk-forward
+python -m src.ir_research              # IR attribution + intervention sweep
 ```
