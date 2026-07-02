@@ -101,6 +101,8 @@ class M2Config:
     min_asset_samples: int = 80
     use_meta_features: bool = True
     include_asset_encoding: bool = True
+    # Research winner: configured | full_enriched | ic_alignment | etc. (see m2_feature_enrichment)
+    feature_variant: str = "configured"
 
 
 @dataclass
@@ -340,3 +342,18 @@ def clone_config_with_m1_weights(cfg: PipelineConfig, weights: dict[str, float])
     validate_split_dates(updated)
     _validate_portfolio(updated)
     return updated
+
+
+def clone_config_with_m2_variant(
+    cfg: PipelineConfig,
+    feature_variant: str,
+    **m2_overrides: Any,
+) -> PipelineConfig:
+    """Return a copy of config with M2 feature_variant (and optional M2 overrides)."""
+    import copy
+
+    data = copy.deepcopy(cfg._raw)
+    m2 = data.setdefault("models", {}).setdefault("m2", {})
+    m2["feature_variant"] = feature_variant
+    m2.update(m2_overrides)
+    return _build_config(data)

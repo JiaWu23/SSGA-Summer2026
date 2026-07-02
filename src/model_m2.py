@@ -59,6 +59,7 @@ class SklearnM2(M2Model):
         self.cfg = cfg
         self.feature_cols: list[str] = []
         self.pipeline: Pipeline | CalibratedClassifierCV | None = None
+        self._ic_weights: dict[str, float] | None = None
 
     def _build_estimator(self) -> Pipeline:
         model_type = self.cfg.type
@@ -88,8 +89,9 @@ class SklearnM2(M2Model):
             ]
         )
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> SklearnM2:
+    def fit(self, X: pd.DataFrame, y: pd.Series, *, ic_weights: dict[str, float] | None = None) -> SklearnM2:
         self.feature_cols = list(X.columns)
+        self._ic_weights = ic_weights
         base = self._build_estimator()
         if self.cfg.calibrate:
             self.pipeline = CalibratedClassifierCV(base, cv=3, method="sigmoid")
@@ -177,7 +179,44 @@ def _asset_class_dummies(panel: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def build_m2_features(panel: pd.DataFrame, cfg: PipelineConfig) -> pd.DataFrame:
+def build_m2_features(
+    panel: pd.DataFrame,
+    cfg: PipelineConfig,
+    *,
+    train_panel: pd.DataFrame | None = None,
+    ic_weights: dict[str, float] | None = None,
+) -> pd.DataFrame:
+    """M2 feature matrix: base factors + M1 context + asset encoding + optional research enrichment."""
+    variant = getattr(cfg.m2, "feature_variant", "configured") or "configured"
+    if variant == "legacy_global":
+        from dataclasses import replace as dc_replace
+
+        variant_cfg = dc_replace(
+            cfg,
+            m2=dc_replace(
+                cfg.m2,
+                use_meta_features=False,
+                include_asset_encoding=False,
+            ),
+        )
+        return _build_m2_features_core(panel, variant_cfg)
+
+    base = _build_m2_features_core(panel, cfg)
+    if variant in ("configured",):
+        return base
+
+    from src.m2_feature_enrichment import enrich_m2_features
+
+    return enrich_m2_features(
+        base,
+        panel,
+        variant,
+        train_panel=train_panel,
+        ic_weights=ic_weights,
+    )
+
+
+def _build_m2_features_core(panel: pd.DataFrame, cfg: PipelineConfig) -> pd.DataFrame:
     """M2 feature matrix: base factors + M1 context + asset encoding + interactions."""
     reset = panel.reset_index() if isinstance(panel.index, pd.MultiIndex) else panel.copy()
     base_features = get_feature_columns(reset)
@@ -308,16 +347,26 @@ def fit_m2(
     m2_mask = get_m2_training_mask(panel) & train_mask
     train_panel = panel.loc[m2_mask]
     y = train_panel["meta_label"].dropna()
-    X = build_m2_features(train_panel, cfg).loc[y.index]
+    ic_weights = None
+    variant = getattr(cfg.m2, "feature_variant", "configured")
+    if variant in ("ic_alignment", "full_enriched"):
+        from src.m2_feature_enrichment import _train_ic_weights
+
+        ic_weights = _train_ic_weights(train_panel)
+    X = build_m2_features(train_panel, cfg, train_panel=train_panel, ic_weights=ic_weights).loc[y.index]
     model = create_m2_model(cfg.m2)
-    model.fit(X, y)
+    if isinstance(model, SklearnM2):
+        model.fit(X, y, ic_weights=ic_weights)
+    else:
+        model.fit(X, y)
     return model, X
 
 
 def predict_m2(model: M2Model, panel: pd.DataFrame, cfg: PipelineConfig) -> pd.DataFrame:
     out = panel.copy()
     m2_rows = get_m2_training_mask(out)
-    X = build_m2_features(out, cfg)
+    ic_weights = getattr(model, "_ic_weights", None) if isinstance(model, SklearnM2) else None
+    X = build_m2_features(out, cfg, ic_weights=ic_weights)
     out["p_success"] = np.nan
     if m2_rows.any():
         out.loc[m2_rows, "p_success"] = model.predict_proba(X.loc[m2_rows]).values

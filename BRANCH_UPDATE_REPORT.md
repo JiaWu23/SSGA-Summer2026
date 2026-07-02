@@ -13,7 +13,8 @@
 This branch makes the multi-asset meta-labeling pipeline **defensible in review** and aligns terminology with **Joubert (2022)**: M1 (side), M2 (trade quality probability), M3 (bet sizing), then portfolio risk controls. It adds **diagnostics, two measurable model improvements, and extended evaluation** — without changing the M1 rule engine or train/test split.
 
 **Full technical detail:** [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)  
-**Terminology (non-finance readers):** [TERMINOLOGY.md](TERMINOLOGY.md)
+**Terminology (non-finance readers):** [TERMINOLOGY.md](TERMINOLOGY.md)  
+**Week 5 research index:** [reports/week5_research_summary.md](reports/week5_research_summary.md)
 
 ---
 

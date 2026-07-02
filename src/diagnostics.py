@@ -1803,6 +1803,7 @@ def build_deep_diagnostics_summary_section(mode_results: list[Any]) -> list[str]
         "",
         "- [M1 Factor Analysis](m1_factor_analysis.md) — per-factor IC, correlation/covariance, sleeve backtests",
         "- [M2 Diagnostics](m2_diagnostics.md) — calibration, decile returns, feature importance, AUC-ROC guide",
+        "- [M2 Feature Research](m2_feature_research.md) — M1 factor + external factor enrichment sweep",
         "- [Market & Regime Analysis](market_regime_analysis.md) — regime timeline, transitions, conditioned performance",
         "- [M3 Allocation Analysis](m3_allocation_analysis.md) — M1 vs M3=0 vs M3>0 states and sizing rules",
         "- [M3 Threshold Analysis](m3_threshold_analysis.md) — binary/linear threshold sweep with rejection vs Sharpe trade-off",
