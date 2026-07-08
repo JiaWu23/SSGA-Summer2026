@@ -791,7 +791,7 @@ def _build_executive_summary(metrics_table: pd.DataFrame, m2_metrics: dict[str, 
         m2_linear = raw.loc["m1_m2_linear"]
 
     lines = [
-        "This report compares a **meta-labeling pipeline** against standard benchmarks on seven global ETFs "
+        "This report compares a **meta-labeling pipeline** against standard benchmarks on seven global index sleeves "
         "(SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT). M1 proposes long/short/flat signals; M2 estimates trade quality "
         "and scales position size.",
         "",
@@ -1288,7 +1288,7 @@ def generate_final_report(
             "- yfinance and FRED are research-grade fallbacks, not institutional data",
             "- Partial FRED refreshes preserve cached series or use clearly logged proxy macro fallbacks",
             "- Data provenance, ETL, validation, cache behavior, and fallback caveats are documented in `../DATA_SOURCES_AND_ETL.md`",
-            "- ETF backtests may include survivorship and product-history effects",
+            "- Index/proxy backtests may include survivorship and data-vendor effects",
             "- Past performance does not predict future results",
             "",
         ]
@@ -1723,7 +1723,7 @@ def build_performance_parameters_section(cfg: PipelineConfig) -> list[str]:
         f"| `split.train_end` | {cfg.split.train_end} | Last in-sample date; **primary knob for tuning in-sample fit** |",
         f"| `split.test_start` | {cfg.split.test_start} | Out-of-sample evaluation begins here (M2 metrics, IC, and test-period strategy tables) |",
         f"| `split.test_end` | {test_end_disp} | Optional cap on the evaluation window |",
-        f"| `split.require_full_universe` | {cfg.split.require_full_universe} | If true, only weeks with all 7 ETFs (~2007+); if false, partial groups allowed |",
+        f"| `split.require_full_universe` | {cfg.split.require_full_universe} | If true, only weeks with all 7 sleeves (~2011+); if false, partial groups allowed |",
         "",
         "**Can train_start be before 2006?** Yes in config/CLI, but with `require_full_universe: true` "
         "(default) the **effective** sample starts when all seven index/proxy sleeves have sufficient public data coverage "
@@ -2423,7 +2423,7 @@ def generate_dual_mode_report(
     ]
     if cfg is not None:
         test_end_disp = cfg.split.test_end or "latest"
-        universe = "all 7 ETFs each week" if cfg.split.require_full_universe else "partial (per-ticker availability)"
+        universe = "all 7 index sleeves each week" if cfg.split.require_full_universe else "partial (per-sleeve availability)"
         lines.extend(
             [
                 f"| Data download from | {cfg.data_start_resolved()} |",
@@ -2568,7 +2568,7 @@ def generate_dual_mode_report(
         [
             "## Key Takeaways",
             "",
-            "1. **Long-only M1** avoids short exposure, which often hurts in upward-trending ETF samples.",
+            "1. **Long-only M1** avoids short exposure, which often hurts in upward-trending equity samples.",
             "2. **Long/short M1** can increase activity but shorts may reduce returns if poorly timed.",
             "3. **M2 meta-labeling** adjusts position size on top of whichever M1 mode is used.",
             "4. Compare both modes above to see whether shorts add value in this universe.",

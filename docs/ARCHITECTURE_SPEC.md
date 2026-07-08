@@ -281,7 +281,7 @@ project:
   rebalance: weekly
 
 assets:
-  tickers: [SPY, TLT, GLD, VEA, VWO, HYG, VNQ]
+  tickers: [SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT]
 
 split:
   train_start: '2006-01-01'

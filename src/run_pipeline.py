@@ -521,7 +521,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--partial-universe",
         action="store_true",
-        help="Allow partial ETF universes before all seven assets exist (sets require_full_universe=false).",
+        help="Allow partial universes before all seven index sleeves exist (sets require_full_universe=false).",
     )
     parser.add_argument(
         "--refresh-data",

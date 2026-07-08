@@ -2,121 +2,121 @@
   "metrics_table": [
     {
       "strategy": "equal_weight_1_7",
-      "annualized_return": 0.07362465458614587,
-      "annualized_volatility": 0.1289817200697988,
-      "sharpe": 0.5708146437053536,
-      "max_drawdown": -0.39442989970107944,
-      "rolling_12m_max_drawdown": -0.39442989970107944,
-      "turnover": 0.0010141987829614602,
-      "annualized_turnover": 0.05273833671399593,
-      "hit_rate": 0.5598377281947262,
+      "annualized_return": 0.06524091047671043,
+      "annualized_volatility": 0.11174739445602438,
+      "sharpe": 0.5838248917954368,
+      "max_drawdown": -0.22894875688704042,
+      "rolling_12m_max_drawdown": -0.22894875688704042,
+      "turnover": 0.0012674271229404306,
+      "annualized_turnover": 0.0659062103929024,
+      "hit_rate": 0.5690747782002535,
       "excess_return_vs_benchmark": 0.0,
       "information_ratio": 0.0
     },
     {
       "strategy": "sixty_forty",
-      "annualized_return": 0.06564032805732567,
-      "annualized_volatility": 0.13267499341133865,
-      "sharpe": 0.49474528974588156,
-      "max_drawdown": -0.4313626336115338,
-      "rolling_12m_max_drawdown": -0.42337049690350703,
+      "annualized_return": 0.05880342739330491,
+      "annualized_volatility": 0.11255193827650928,
+      "sharpe": 0.5224559282918878,
+      "max_drawdown": -0.23864711559463037,
+      "rolling_12m_max_drawdown": -0.23864711559463037,
       "turnover": 0.0,
       "annualized_turnover": 0.0,
-      "hit_rate": 0.5649087221095335,
-      "excess_return_vs_benchmark": -0.007984326528820196,
-      "information_ratio": -0.2785469615266807
+      "hit_rate": 0.5741444866920152,
+      "excess_return_vs_benchmark": -0.006437483083405526,
+      "information_ratio": -0.26379211075019476
     },
     {
       "strategy": "m1_only",
-      "annualized_return": 0.014041343792003724,
-      "annualized_volatility": 0.06914508280010308,
-      "sharpe": 0.2030707495513013,
-      "max_drawdown": -0.14809347458835986,
-      "rolling_12m_max_drawdown": -0.1397389246534333,
-      "turnover": 0.10713441935418223,
-      "annualized_turnover": 5.570989806417476,
-      "hit_rate": 0.5182555780933062,
-      "excess_return_vs_benchmark": -0.05958331079414214,
-      "information_ratio": -0.3970584348552112
+      "annualized_return": 0.0058706213797348195,
+      "annualized_volatility": 0.05840812727166653,
+      "sharpe": 0.10051035110969268,
+      "max_drawdown": -0.13160872003780666,
+      "rolling_12m_max_drawdown": -0.12485647874096839,
+      "turnover": 0.13468554765715318,
+      "annualized_turnover": 7.003648478171965,
+      "hit_rate": 0.5171102661596958,
+      "excess_return_vs_benchmark": -0.059370289096975615,
+      "information_ratio": -0.4542322356087662
     },
     {
       "strategy": "m1_m2_m3_binary",
-      "annualized_return": 0.01759847434458539,
-      "annualized_volatility": 0.061141850750574434,
-      "sharpe": 0.28783025257736494,
-      "max_drawdown": -0.24331180293157906,
-      "rolling_12m_max_drawdown": -0.24331180293157906,
-      "turnover": 0.15870566099050054,
-      "annualized_turnover": 8.252694371506028,
-      "hit_rate": 0.3052738336713996,
-      "excess_return_vs_benchmark": -0.056026180241560475,
-      "information_ratio": -0.5410229842856
+      "annualized_return": 0.01836576699195014,
+      "annualized_volatility": 0.030765156112361556,
+      "sharpe": 0.5969664813295293,
+      "max_drawdown": -0.11355439136052503,
+      "rolling_12m_max_drawdown": -0.09146548499965657,
+      "turnover": 0.09786338022813688,
+      "annualized_turnover": 5.088895771863118,
+      "hit_rate": 0.22433460076045628,
+      "excess_return_vs_benchmark": -0.046875143484760295,
+      "information_ratio": -0.4766595280634948
     },
     {
       "strategy": "m1_m2_m3_linear",
-      "annualized_return": 0.005430703064076781,
-      "annualized_volatility": 0.010392672389639776,
-      "sharpe": 0.5225511649429581,
-      "max_drawdown": -0.042138549186874874,
-      "rolling_12m_max_drawdown": -0.042138549186874874,
-      "turnover": 0.03087305446844909,
-      "annualized_turnover": 1.6053988323593527,
-      "hit_rate": 0.5851926977687627,
-      "excess_return_vs_benchmark": -0.06819395152206909,
-      "information_ratio": -0.6014781441681056
+      "annualized_return": 0.0036076906783659712,
+      "annualized_volatility": 0.0054023757340656425,
+      "sharpe": 0.6677970685409819,
+      "max_drawdown": -0.016290257375325856,
+      "rolling_12m_max_drawdown": -0.016290257375325856,
+      "turnover": 0.02120448284097212,
+      "annualized_turnover": 1.1026331077305502,
+      "hit_rate": 0.41951837769328265,
+      "excess_return_vs_benchmark": -0.06163321979834446,
+      "information_ratio": -0.6022307235017349
     },
     {
       "strategy": "m1_m2_m3_ecdf",
-      "annualized_return": 0.05231146310463042,
-      "annualized_volatility": 0.06904029284149271,
-      "sharpe": 0.7576946874302887,
-      "max_drawdown": -0.11796558434155235,
-      "rolling_12m_max_drawdown": -0.11796558434155235,
-      "turnover": 0.20155130433780505,
-      "annualized_turnover": 10.480667825565863,
-      "hit_rate": 0.5841784989858012,
-      "excess_return_vs_benchmark": -0.021313191481515448,
-      "information_ratio": -0.21149686632818715
+      "annualized_return": 0.03021834396418832,
+      "annualized_volatility": 0.04504493902463774,
+      "sharpe": 0.6708488149503349,
+      "max_drawdown": -0.07239959981260868,
+      "rolling_12m_max_drawdown": -0.0696874372692523,
+      "turnover": 0.1795096705624235,
+      "annualized_turnover": 9.334502869246023,
+      "hit_rate": 0.5640050697084917,
+      "excess_return_vs_benchmark": -0.03502256651252211,
+      "information_ratio": -0.38247051339280835
     },
     {
       "strategy": "m1_m2_passthrough",
-      "annualized_return": 0.017579664227153735,
-      "annualized_volatility": 0.06032730495952513,
-      "sharpe": 0.29140476669641224,
-      "max_drawdown": -0.11384389341849566,
-      "rolling_12m_max_drawdown": -0.10643284842506973,
-      "turnover": 0.11415245822173962,
-      "annualized_turnover": 5.9359278275304606,
-      "hit_rate": 0.5304259634888439,
-      "excess_return_vs_benchmark": -0.05604499035899213,
-      "information_ratio": -0.40484263318649333
+      "annualized_return": 0.010665433696795956,
+      "annualized_volatility": 0.04751807369386627,
+      "sharpe": 0.22445004327211757,
+      "max_drawdown": -0.10433879451856776,
+      "rolling_12m_max_drawdown": -0.09848111211196087,
+      "turnover": 0.13122553494302316,
+      "annualized_turnover": 6.823727817037205,
+      "hit_rate": 0.5209125475285171,
+      "excess_return_vs_benchmark": -0.05457547677991448,
+      "information_ratio": -0.4588586912414705
     }
   ],
   "m2_metrics": {
-    "accuracy": 0.5415204678362573,
-    "precision": 0.57,
-    "recall": 0.3337236533957845,
-    "f1": 0.42097488921713444,
-    "brier_score": 0.24584555143502193,
+    "accuracy": 0.5005767012687428,
+    "precision": 0.5833333333333334,
+    "recall": 0.032036613272311214,
+    "f1": 0.06073752711496746,
+    "brier_score": 0.24723030268366436,
     "confusion_matrix": [
       [
-        641,
-        215
+        840,
+        20
       ],
       [
-        569,
-        285
+        846,
+        28
       ]
     ],
-    "base_rate": 0.4994152046783626,
-    "n_trades": 1710,
-    "mean_p_winners": 0.525246191798668,
-    "mean_p_losers": 0.5120948397104907,
-    "mae": 0.493446160816443,
-    "mean_diff": 0.019247620227042437,
-    "auc": 0.5868111033290289,
-    "auc_pr": 0.545290924290073,
-    "information_coefficient_mean": 0.10612608032536862
+    "base_rate": 0.5040369088811996,
+    "n_trades": 1734,
+    "mean_p_winners": 0.46127143058187825,
+    "mean_p_losers": 0.44609804186895424,
+    "mae": 0.49278724664287143,
+    "mean_diff": -0.050290919068130165,
+    "auc": 0.596445106700016,
+    "auc_pr": 0.5758678487312664,
+    "information_coefficient_mean": 0.09724310776942356
   },
   "m1_signal_analysis": {
     "period": "test",
@@ -125,27 +125,27 @@
       {
         "m1_signal": -1,
         "signal_label": "Short (\u22121)",
-        "observations": 855,
+        "observations": 867,
         "share_of_panel": 0.42857142857142855,
-        "labeled_trades": 855.0,
-        "m1_hit_rate": 0.4093567251461988,
-        "mean_trade_return": -0.0027841909117820194,
-        "median_trade_return": -0.00425038836358449,
-        "m2_approval_rate": 0.0011695906432748538,
-        "hit_rate_m2_approved": 0.0,
-        "hit_rate_m2_rejected": 0.4098360655737705,
-        "mean_return_m2_approved": -0.03717011844975482,
-        "mean_return_m2_rejected": -0.0027433525180314573,
-        "m2_accuracy": 0.5894736842105263,
+        "labeled_trades": 867.0,
+        "m1_hit_rate": 0.4002306805074971,
+        "mean_trade_return": -0.0032603909212859977,
+        "median_trade_return": -0.004382237593448579,
+        "m2_approval_rate": 0.0,
+        "hit_rate_m2_approved": NaN,
+        "hit_rate_m2_rejected": 0.4002306805074971,
+        "mean_return_m2_approved": NaN,
+        "mean_return_m2_rejected": -0.0032603909212859977,
+        "m2_accuracy": 0.5997693194925029,
         "m2_precision": 0.0,
         "m2_recall": 0.0,
         "m2_f1": 0.0,
-        "m2_auc": 0.5527637906647808
+        "m2_auc": 0.5367712258922633
       },
       {
         "m1_signal": 0,
         "signal_label": "Flat (0)",
-        "observations": 285,
+        "observations": 289,
         "share_of_panel": 0.14285714285714285,
         "labeled_trades": NaN,
         "m1_hit_rate": NaN,
@@ -165,179 +165,183 @@
       {
         "m1_signal": 1,
         "signal_label": "Long (+1)",
-        "observations": 855,
+        "observations": 867,
         "share_of_panel": 0.42857142857142855,
-        "labeled_trades": 855.0,
-        "m1_hit_rate": 0.5894736842105263,
-        "mean_trade_return": 0.008266167638585876,
-        "median_trade_return": 0.010890443507106218,
-        "m2_approval_rate": 0.583625730994152,
-        "hit_rate_m2_approved": 0.5711422845691383,
-        "hit_rate_m2_rejected": 0.6151685393258427,
-        "mean_return_m2_approved": 0.004946600772699052,
-        "mean_return_m2_rejected": 0.012942014681106465,
-        "m2_accuracy": 0.4935672514619883,
-        "m2_precision": 0.5711422845691383,
-        "m2_recall": 0.5654761904761905,
-        "m2_f1": 0.5682951146560319,
-        "m2_auc": 0.4502046307601863
+        "labeled_trades": 867.0,
+        "m1_hit_rate": 0.6078431372549019,
+        "mean_trade_return": 0.00885668199898121,
+        "median_trade_return": 0.011250715399250266,
+        "m2_approval_rate": 0.05536332179930796,
+        "hit_rate_m2_approved": 0.5833333333333334,
+        "hit_rate_m2_rejected": 0.6092796092796092,
+        "mean_return_m2_approved": 0.011143629373217535,
+        "mean_return_m2_rejected": 0.008720655389361206,
+        "m2_accuracy": 0.4013840830449827,
+        "m2_precision": 0.5833333333333334,
+        "m2_recall": 0.05313092979127135,
+        "m2_f1": 0.09739130434782609,
+        "m2_auc": 0.5268556758566805
       }
     ]
   },
-  "ic_mean": 0.10612608032536862,
+  "ic_mean": 0.09724310776942356,
   "per_asset_ic": [
     {
-      "ticker": "GLD",
-      "ic": -0.00037804627416197035,
-      "n_obs": 281,
-      "hit_rate": 0.5924528301886792
+      "ticker": "GOLD_SPOT",
+      "ic": 0.022399912911402902,
+      "n_obs": 285,
+      "hit_rate": 0.610909090909091
     },
     {
-      "ticker": "HYG",
-      "ic": 0.0938409285119363,
-      "n_obs": 281,
-      "hit_rate": 0.6280701754385964
+      "ticker": "MSCI_EAFE",
+      "ic": 0.05713167484850212,
+      "n_obs": 285,
+      "hit_rate": 0.556910569105691
     },
     {
-      "ticker": "SPY",
-      "ic": -0.10391242739240013,
-      "n_obs": 281,
-      "hit_rate": 0.6639004149377593
+      "ticker": "MSCI_EM",
+      "ic": 0.18027909821831242,
+      "n_obs": 285,
+      "hit_rate": 0.5652173913043478
     },
     {
-      "ticker": "TLT",
-      "ic": -0.1938187541238953,
-      "n_obs": 281,
-      "hit_rate": 0.4666666666666667
+      "ticker": "SP500",
+      "ic": -0.09933957813868859,
+      "n_obs": 285,
+      "hit_rate": 0.6612244897959184
     },
     {
-      "ticker": "VEA",
-      "ic": 0.10210494434769439,
-      "n_obs": 281,
-      "hit_rate": 0.5818965517241379
+      "ticker": "UST_7_10",
+      "ic": -0.12033726095994442,
+      "n_obs": 285,
+      "hit_rate": 0.5473251028806584
     },
     {
-      "ticker": "VNQ",
-      "ic": -0.14074624928338866,
-      "n_obs": 281,
-      "hit_rate": 0.5748031496062992
+      "ticker": "US_HIGH_YIELD",
+      "ic": 0.012889630754716002,
+      "n_obs": 285,
+      "hit_rate": 0.680672268907563
     },
     {
-      "ticker": "VWO",
-      "ic": 0.06026565998550551,
-      "n_obs": 281,
-      "hit_rate": 0.5449438202247191
+      "ticker": "US_REIT",
+      "ic": -0.1197089789380375,
+      "n_obs": 285,
+      "hit_rate": 0.5330739299610895
     }
   ],
   "m1_exposure_analysis": {
-    "mean_gross_exposure": 0.9828389982491759,
+    "mean_gross_exposure": 0.9959192289236342,
     "median_gross_exposure": 1.0000000000000002,
-    "mean_cash_weight": 0.017161001750824193,
-    "mean_long_gross": 0.49141949912458793,
-    "mean_short_gross": 0.49141949912458793,
-    "mean_active_names": 6.0,
+    "mean_cash_weight": 0.0040807710763658325,
+    "mean_long_gross": 0.49821309988640516,
+    "mean_short_gross": 0.49770612903722905,
+    "mean_active_names": 5.997465145754119,
     "pct_weeks_below_half_invested": 0.0,
-    "mean_gross_vs_benchmark": -0.016146802967862417,
-    "mean_weekly_turnover": 0.10713441935418223,
-    "return_correlation_vs_benchmark": -0.21587266565433266
+    "mean_gross_vs_benchmark": -0.0028133439534252513,
+    "mean_weekly_turnover": 0.13468554765715318,
+    "return_correlation_vs_benchmark": -0.20654986359801655
   },
   "threshold_sensitivity": [
     {
       "long_quantile": 0.52,
-      "long_threshold": -0.12880805579948873,
-      "annualized_return": 0.06574222912286065,
-      "sharpe": 0.6483300480072051,
-      "max_drawdown": -0.22809296312862537,
-      "mean_gross": 0.7753721268931568
+      "long_threshold": -0.06943396592318868,
+      "annualized_return": 0.046798528944003825,
+      "sharpe": 0.5140727747082998,
+      "max_drawdown": -0.1661799430189218,
+      "mean_gross": 0.8064873419633493
     },
     {
       "long_quantile": 0.54,
-      "long_threshold": -0.09693014789736128,
-      "annualized_return": 0.06494716490089658,
-      "sharpe": 0.6434442360181026,
-      "max_drawdown": -0.23673620862497846,
-      "mean_gross": 0.7643750594939562
+      "long_threshold": -0.04840604271711131,
+      "annualized_return": 0.04891419459862534,
+      "sharpe": 0.5500246427633563,
+      "max_drawdown": -0.1671487588037549,
+      "mean_gross": 0.7934126955064597
     },
     {
       "long_quantile": 0.56,
-      "long_threshold": -0.06497670829782577,
-      "annualized_return": 0.05964766842310176,
-      "sharpe": 0.5940433818390002,
-      "max_drawdown": -0.25842393529697394,
-      "mean_gross": 0.7540325609923656
+      "long_threshold": -0.027249023042122837,
+      "annualized_return": 0.05164059867753035,
+      "sharpe": 0.6015315738473657,
+      "max_drawdown": -0.14840397359902402,
+      "mean_gross": 0.782762581987379
     },
     {
       "long_quantile": 0.58,
-      "long_threshold": -0.033827499759603044,
-      "annualized_return": 0.06433480429633098,
-      "sharpe": 0.6582484506279603,
-      "max_drawdown": -0.21409571254714732,
-      "mean_gross": 0.7410599088147628
+      "long_threshold": -0.007813448912353119,
+      "annualized_return": 0.044640772962814435,
+      "sharpe": 0.5253600545574217,
+      "max_drawdown": -0.14906359549878734,
+      "mean_gross": 0.7622178609190972
     },
     {
       "long_quantile": 0.6,
-      "long_threshold": -0.008638334481476518,
-      "annualized_return": 0.0628925734815593,
-      "sharpe": 0.6471836399073062,
-      "max_drawdown": -0.2038908832359404,
-      "mean_gross": 0.7235513873288735
+      "long_threshold": 0.007171072664817186,
+      "annualized_return": 0.037269832107432954,
+      "sharpe": 0.4476079563360195,
+      "max_drawdown": -0.14906359549878734,
+      "mean_gross": 0.7404828231932646
     },
     {
       "long_quantile": 0.62,
-      "long_threshold": 0.008841853667374739,
-      "annualized_return": 0.06146742510278802,
-      "sharpe": 0.6425047774700792,
-      "max_drawdown": -0.20414018191303474,
-      "mean_gross": 0.7011493462200742
+      "long_threshold": 0.03188081353885437,
+      "annualized_return": 0.04174135519275546,
+      "sharpe": 0.5198377891040247,
+      "max_drawdown": -0.1369876080677036,
+      "mean_gross": 0.7200621215394767
     },
     {
       "long_quantile": 0.64,
-      "long_threshold": 0.04342036046680952,
-      "annualized_return": 0.07098800584927267,
-      "sharpe": 0.7569972744625728,
-      "max_drawdown": -0.192026344793509,
-      "mean_gross": 0.6815587210815295
+      "long_threshold": 0.05837795476386527,
+      "annualized_return": 0.043509485701237915,
+      "sharpe": 0.5554410994957771,
+      "max_drawdown": -0.12701751731784494,
+      "mean_gross": 0.6929442127729154
     },
     {
       "long_quantile": 0.66,
-      "long_threshold": 0.0747146753918602,
-      "annualized_return": 0.06352835145985547,
-      "sharpe": 0.68355153362187,
-      "max_drawdown": -0.18018455777840592,
-      "mean_gross": 0.6531267954494483
+      "long_threshold": 0.07961392977008465,
+      "annualized_return": 0.03801939000758958,
+      "sharpe": 0.4985036363780492,
+      "max_drawdown": -0.11758144674179438,
+      "mean_gross": 0.6596963017833505
     },
     {
       "long_quantile": 0.68,
-      "long_threshold": 0.10907937691530206,
-      "annualized_return": 0.05395633037982783,
-      "sharpe": 0.6045955629057743,
-      "max_drawdown": -0.1340382896733514,
-      "mean_gross": 0.624362405094395
+      "long_threshold": 0.1103159448056292,
+      "annualized_return": 0.036394986509058924,
+      "sharpe": 0.48735389107711535,
+      "max_drawdown": -0.12118691618515842,
+      "mean_gross": 0.6289943066230644
     }
   ],
   "exposure_chart": "m1_exposure_over_time.png",
   "sens_chart": "m1_threshold_sensitivity.png",
   "factor_summary": {
-    "factor_ic": "   period          factor   ic_mean    ic_std  ic_hit_rate  n_weeks\n0    full  momentum_score  0.043823  0.487589     0.532454      986\n1    full     trend_score  0.039051  0.503861     0.500000      986\n2    full     macro_score -0.003548  0.456659     0.469574      986\n3    full    risk_penalty  0.025947  0.451714     0.497972      986\n4    full        M1_score  0.054407  0.428971     0.529412      986\n5   train  momentum_score  0.031821  0.500918     0.522111      701\n6   train     trend_score  0.004214  0.524914     0.462197      701\n7   train     macro_score  0.009622  0.472553     0.489301      701\n8   train    risk_penalty  0.019414  0.456742     0.492154      701\n9   train        M1_score  0.033675  0.436003     0.509272      701\n10   test  momentum_score  0.073208  0.452818     0.557895      285\n11   test     trend_score  0.120996  0.440598     0.592982      285\n12   test     macro_score -0.036403  0.413333     0.421053      285\n13   test    risk_penalty  0.041942  0.439551     0.512281      285\n14   test        M1_score  0.106126  0.407070     0.578947      285",
-    "factor_correlation": "                momentum_score  trend_score  macro_score  risk_penalty\nmomentum_score        1.000000     0.772862     0.056643      0.144155\ntrend_score           0.772862     1.000000     0.040663      0.067975\nmacro_score           0.056643     0.040663     1.000000      0.447461\nrisk_penalty          0.144155     0.067975     0.447461      1.000000",
-    "factor_covariance": "                momentum_score  trend_score  macro_score  risk_penalty\nmomentum_score        0.120129     0.241269     0.059976      0.040011\ntrend_score           0.241269     0.811243     0.111886      0.049028\nmacro_score           0.059976     0.111886     9.332746      1.094667\nrisk_penalty          0.040011     0.049028     1.094667      0.641275",
-    "underlying_feature_correlation": "                z_mom_12w  z_mom_26w  ...  curve_inverted  credit_stress\nz_mom_12w        1.000000   0.596193  ...             NaN  -4.344440e-04\nz_mom_26w        0.596193   1.000000  ...             NaN  -9.554877e-04\nz_mom_52w        0.411859   0.660872  ...             NaN  -1.401899e-03\nrank_mom_12w     0.953535   0.576667  ...             NaN   1.318360e-16\nrel_mom_12w      0.884502   0.575341  ...             NaN  -2.260692e-02\nz_trend_signal   0.518156   0.879376  ...             NaN  -1.028318e-03\nz_vol_12w       -0.083691  -0.088964  ...             NaN  -9.248020e-04\ndrawdown_26w     0.392611   0.394640  ...             NaN  -5.247267e-01\nz_drawdown_26w   0.626879   0.597202  ...             NaN  -2.997118e-03\ngrowth_trend     0.000104   0.000172  ...             NaN  -4.512224e-01\nrisk_off        -0.000794  -0.001611  ...             NaN   4.569769e-01\ninflation_up     0.000165   0.000420  ...             NaN  -4.078423e-02\ncurve_inverted        NaN        NaN  ...             NaN            NaN\ncredit_stress   -0.000434  -0.000955  ...             NaN   1.000000e+00\n\n[14 rows x 14 columns]",
-    "factor_sleeves": "           sleeve  ...  sum_standalone_excess_ann\n0         full_m1  ...                        NaN\n1  momentum_score  ...                        NaN\n2     trend_score  ...                        NaN\n3     macro_score  ...                        NaN\n4    risk_penalty  ...                        NaN\n5     interaction  ...                  -0.276743\n\n[6 rows x 12 columns]",
-    "factor_ablation": "               variant  annualized_return  ...  annualized_turnover  hit_rate\n0              full_m1           0.014041  ...             5.570990  0.518256\n1      ablate_momentum           0.014086  ...             8.096369  0.511156\n2         ablate_trend           0.014269  ...            14.321102  0.515213\n3         ablate_macro           0.021693  ...             8.972690  0.518256\n4  ablate_risk_penalty           0.017845  ...             8.090402  0.522312\n\n[5 rows x 9 columns]",
-    "factor_weight_tuning": "                 variant  ... test_max_drawdown\n0               baseline  ...         -0.091051\n1  ic_proportional_train  ...         -0.114742\n2            trend_heavy  ...         -0.082433\n3           low_momentum  ...         -0.075384\n4        ablate_momentum  ...         -0.055278\n5     technical_ic_blend  ...         -0.094030\n6        grid_best_train  ...         -0.054086\n\n[7 rows x 12 columns]",
+    "factor_ic": "   period          factor   ic_mean    ic_std  ic_hit_rate  n_weeks\n0    full  momentum_score  0.028359  0.491339     0.510773      789\n1    full     trend_score  0.033269  0.487390     0.470215      789\n2    full     macro_score -0.009065  0.449704     0.470215      789\n3    full    risk_penalty  0.054312  0.456081     0.538657      789\n4    full        M1_score  0.017399  0.487332     0.484157      789\n5   train  momentum_score -0.002640  0.506227     0.490000      500\n6   train     trend_score -0.015528  0.506206     0.416000      500\n7   train     macro_score  0.007857  0.471195     0.482000      500\n8   train    risk_penalty  0.041508  0.450987     0.530000      500\n9   train        M1_score -0.028112  0.499808     0.446000      500\n10   test  momentum_score  0.081328  0.460854     0.546713      289\n11   test     trend_score  0.112030  0.445072     0.564014      289\n12   test     macro_score -0.038753  0.408389     0.449827      289\n13   test    risk_penalty  0.076190  0.464638     0.553633      289\n14   test        M1_score  0.097243  0.454584     0.550173      289",
+    "factor_correlation": "                momentum_score  trend_score  macro_score  risk_penalty\nmomentum_score        1.000000     0.780550     0.092105      0.190553\ntrend_score           0.780550     1.000000     0.051801      0.112006\nmacro_score           0.092105     0.051801     1.000000      0.299436\nrisk_penalty          0.190553     0.112006     0.299436      1.000000",
+    "factor_covariance": "                momentum_score  trend_score  macro_score  risk_penalty\nmomentum_score        0.121412     0.244046     0.012726      0.054547\ntrend_score           0.244046     0.805153     0.018431      0.082567\nmacro_score           0.012726     0.018431     0.157228      0.097543\nrisk_penalty          0.054547     0.082567     0.097543      0.674924",
+    "underlying_feature_correlation": "                z_mom_12w  z_mom_26w  ...  curve_inverted  credit_stress\nz_mom_12w        1.000000   0.611362  ...             NaN   9.061000e-04\nz_mom_26w        0.611362   1.000000  ...             NaN   1.997369e-03\nz_mom_52w        0.474648   0.710237  ...             NaN   3.150982e-03\nrank_mom_12w     0.951743   0.590143  ...             NaN  -1.722540e-15\nrel_mom_12w      0.922733   0.600905  ...             NaN  -2.011068e-02\nz_trend_signal   0.540749   0.880258  ...             NaN   1.651580e-03\nz_vol_12w       -0.030207  -0.038291  ...             NaN  -5.283776e-05\ndrawdown_26w     0.425592   0.440088  ...             NaN  -1.770087e-01\nz_drawdown_26w   0.581320   0.556294  ...             NaN   9.611601e-04\ngrowth_trend    -0.000151  -0.000207  ...             NaN  -2.405190e-01\nrisk_off        -0.000273  -0.000805  ...             NaN   1.065694e-01\ninflation_up     0.000258  -0.000198  ...             NaN  -1.428024e-01\ncurve_inverted        NaN        NaN  ...             NaN            NaN\ncredit_stress    0.000906   0.001997  ...             NaN   1.000000e+00\n\n[14 rows x 14 columns]",
+    "factor_sleeves": "           sleeve  ...  sum_standalone_excess_ann\n0         full_m1  ...                        NaN\n1  momentum_score  ...                        NaN\n2     trend_score  ...                        NaN\n3     macro_score  ...                        NaN\n4    risk_penalty  ...                        NaN\n5     interaction  ...                  -0.324063\n\n[6 rows x 12 columns]",
+    "factor_ablation": "               variant  annualized_return  ...  annualized_turnover  hit_rate\n0              full_m1           0.005871  ...             7.003648  0.517110\n1      ablate_momentum           0.010249  ...            10.567083  0.524715\n2         ablate_trend          -0.004269  ...            16.847017  0.525982\n3         ablate_macro          -0.002787  ...             9.627300  0.515843\n4  ablate_risk_penalty           0.000362  ...            10.884552  0.519645\n\n[5 rows x 9 columns]",
+    "factor_weight_tuning": "                 variant  ... test_max_drawdown\n0               baseline  ...         -0.089454\n1  ic_proportional_train  ...         -0.214528\n2            trend_heavy  ...         -0.066216\n3           low_momentum  ...         -0.066626\n4        ablate_momentum  ...         -0.058380\n5     technical_ic_blend  ...         -0.066216\n6        grid_best_train  ...         -0.068988\n\n[7 rows x 12 columns]",
     "weight_tuning_meta": {
-      "grid_top": "   variant  momentum  trend  ...  test_ann_return  test_sharpe  test_max_drawdown\n12    grid       0.4   0.35  ...         0.032808     0.573789          -0.054086\n10    grid       0.4   0.25  ...         0.024620     0.432398          -0.076956\n14    grid       0.5   0.15  ...         0.022265     0.384830          -0.081804\n15    grid       0.5   0.15  ...         0.022705     0.392025          -0.084974\n11    grid       0.4   0.35  ...         0.018453     0.322155          -0.109191\n13    grid       0.4   0.45  ...         0.032069     0.554228          -0.058950\n5     grid       0.3   0.35  ...         0.029544     0.526914          -0.064305\n2     grid       0.2   0.45  ...         0.033991     0.593753          -0.065160\n4     grid       0.3   0.35  ...         0.022665     0.390153          -0.085697\n17    grid       0.5   0.25  ...         0.031447     0.554582          -0.070864\n8     grid       0.4   0.15  ...         0.010460     0.172325          -0.113640\n9     grid       0.4   0.25  ...         0.023263     0.395210          -0.079986\n7     grid       0.3   0.45  ...         0.032615     0.562117          -0.075059\n3     grid       0.3   0.25  ...         0.013767     0.233340          -0.092287\n20    grid       0.6   0.15  ...         0.020570     0.355783          -0.073125\n\n[15 rows x 11 columns]",
+      "grid_top": "   variant  momentum  trend  ...  test_ann_return  test_sharpe  test_max_drawdown\n3     grid       0.3   0.25  ...         0.035897     0.601623          -0.068988\n8     grid       0.4   0.15  ...         0.026874     0.440467          -0.091374\n0     grid       0.2   0.35  ...         0.039133     0.654958          -0.056590\n9     grid       0.4   0.25  ...         0.026438     0.458788          -0.087992\n10    grid       0.4   0.25  ...         0.018761     0.316883          -0.130131\n16    grid       0.5   0.25  ...         0.027064     0.464400          -0.078473\n4     grid       0.3   0.35  ...         0.027912     0.488851          -0.063603\n19    grid       0.6   0.15  ...         0.021372     0.363976          -0.107592\n14    grid       0.5   0.15  ...         0.027989     0.464873          -0.093101\n5     grid       0.3   0.35  ...         0.028984     0.473945          -0.086848\n17    grid       0.5   0.25  ...         0.023705     0.425239          -0.108902\n11    grid       0.4   0.35  ...         0.026071     0.451684          -0.069450\n15    grid       0.5   0.15  ...         0.018036     0.309449          -0.137123\n12    grid       0.4   0.35  ...         0.031632     0.540735          -0.079758\n1     grid       0.2   0.45  ...         0.038592     0.651298          -0.052515\n\n[15 rows x 11 columns]",
       "recommendation": {
-        "variant": "ablate_momentum",
+        "variant": "baseline",
         "weights": {
-          "momentum": 0.0,
-          "trend": 0.7,
+          "momentum": 0.45,
+          "trend": 0.25,
           "macro": 0.2,
           "risk_penalty": 0.1
         },
-        "test_sharpe": 0.5942699504365123,
-        "baseline_test_sharpe": 0.4738491059420797,
-        "rationale": "Test-period IC favors trend (0.121) over momentum (0.073). Momentum-trend correlation 0.77 suggests redundant technical exposure. Variant `ablate_momentum` improves test Sharpe to 0.5943 vs baseline 0.4738."
+        "test_sharpe": 0.7682882025197356,
+        "baseline_test_sharpe": 0.5286042733631906,
+        "rationale": "Test-period IC favors trend (0.112) over momentum (0.081). Momentum-trend correlation 0.78 suggests redundant technical exposure. Variant `ablate_momentum` improves test Sharpe to 0.7683 vs baseline 0.5286. Walk-forward validation not run; keep config weights until validated.",
+        "holdout_variant": "ablate_momentum",
+        "holdout_test_sharpe": 0.7682882025197356,
+        "walk_forward_validated": false,
+        "config_action": "keep_baseline_run_walk_forward"
       }
     },
     "charts": [
@@ -348,12 +352,12 @@
     ]
   },
   "regime_summary": {
-    "regime_timeline": "          date  risk_off  ...  inflation_trend  vix_quartile\n0   2007-07-27       1.0  ...         0.026928            Q2\n1   2007-08-03       1.0  ...         0.023179       Q4_high\n2   2007-08-10       1.0  ...         0.023179       Q4_high\n3   2007-08-17       1.0  ...         0.023179       Q4_high\n4   2007-08-24       1.0  ...         0.023179       Q4_high\n..         ...       ...  ...              ...           ...\n981 2026-05-15       0.0  ...         0.037792            Q2\n982 2026-05-22       0.0  ...         0.037792            Q3\n983 2026-05-29       0.0  ...         0.041666            Q2\n984 2026-06-05       0.0  ...         0.041666            Q2\n985 2026-06-12       1.0  ...         0.041666            Q3\n\n[986 rows x 11 columns]",
-    "regime_transitions": "      regime_flag  n_transitions  ...  avg_spell_on_weeks  avg_spell_off_weeks\n0        risk_off            102  ...            5.269231            13.960784\n1  curve_inverted              0  ...                 NaN           986.000000\n2    inflation_up             25  ...           31.000000            44.846154\n3     growth_down             20  ...           51.900000            42.454545\n\n[4 rows x 5 columns]",
-    "performance_by_regime": "       regime_flag regime_state  ...    sharpe  hit_rate\n0         risk_off           on  ...  0.713130  0.591241\n1         risk_off           on  ...  0.073994  0.503650\n2         risk_off           on  ...  1.128329  0.624088\n3         risk_off           on  ...  1.128329  0.624088\n4         risk_off          off  ...  0.531349  0.547753\n5         risk_off          off  ...  0.295979  0.523876\n6         risk_off          off  ...  0.601201  0.568820\n7         risk_off          off  ...  0.601201  0.568820\n8   curve_inverted          off  ...  0.570815  0.559838\n9   curve_inverted          off  ...  0.203071  0.518256\n10  curve_inverted          off  ...  0.757695  0.584178\n11  curve_inverted          off  ...  0.757695  0.584178\n12    inflation_up           on  ... -0.485421  0.518610\n13    inflation_up           on  ...  0.518524  0.518610\n14    inflation_up           on  ...  0.573293  0.578164\n15    inflation_up           on  ...  0.573293  0.578164\n16    inflation_up          off  ...  1.561467  0.588336\n17    inflation_up          off  ... -0.037286  0.518010\n18    inflation_up          off  ...  0.892666  0.588336\n19    inflation_up          off  ...  0.892666  0.588336\n20     growth_down           on  ...  0.394605  0.543353\n21     growth_down           on  ...  0.149716  0.512524\n22     growth_down           on  ...  0.609651  0.572254\n23     growth_down           on  ...  0.609651  0.572254\n24     growth_down          off  ...  0.868360  0.578158\n25     growth_down          off  ...  0.286435  0.524625\n26     growth_down          off  ...  0.939655  0.597430\n27     growth_down          off  ...  0.939655  0.597430\n\n[28 rows x 7 columns]",
-    "m1_ic_by_regime": "      regime_flag regime_state   ic_mean  n_weeks\n0        risk_off           on -0.025510       50\n1        risk_off          off  0.133929      235\n2  curve_inverted          off  0.106126      285\n3    inflation_up           on  0.034427      115\n4    inflation_up          off  0.152941      170\n5     growth_down           on  0.151639      122\n6     growth_down          off  0.071204      163",
-    "m2_auc_by_regime": "      regime_flag regime_state       auc  n_trades  base_rate\n0        risk_off           on  0.569106       300   0.476667\n1        risk_off          off  0.590061      1410   0.504255\n2  curve_inverted          off  0.586811      1710   0.499415\n3    inflation_up           on  0.503012       690   0.473913\n4    inflation_up          off  0.654884      1020   0.516667\n5     growth_down           on  0.626961       732   0.523224\n6     growth_down          off  0.560723       978   0.481595",
-    "regime_market_context": "   period          feature       mean       std        min        max    pct_on\n0   train        vix_level  19.973153  9.385526   9.590000  59.930000       NaN\n1   train    credit_stress  19.945235  9.389328   9.590000  59.930000       NaN\n2   train      yield_curve   0.199452  0.093893   0.095900   0.599300       NaN\n3   train     growth_trend  -0.002438  0.050488  -0.160477   0.079426       NaN\n4   train  inflation_trend   0.017823  0.012743  -0.014838   0.053080       NaN\n5   train         risk_off   0.319544  0.466633   0.000000   1.000000  0.319544\n6   train   curve_inverted   0.000000  0.000000   0.000000   0.000000  0.000000\n7   train     inflation_up   0.410842  0.492338   0.000000   1.000000  0.410842\n8   train      growth_down   0.566334  0.495934   0.000000   1.000000  0.566334\n9    test        vix_level  19.216737  5.253633  11.930000  45.310001       NaN\n10   test    credit_stress  19.259333  5.252786  11.930000  45.310001       NaN\n11   test      yield_curve   0.192593  0.052528   0.119300   0.453100       NaN\n12   test     growth_trend   0.010002  0.023551  -0.056806   0.079426       NaN\n13   test  inflation_trend   0.037588  0.012404   0.013204   0.053080       NaN\n14   test         risk_off   0.175439  0.381011   0.000000   1.000000  0.175439\n15   test   curve_inverted   0.000000  0.000000   0.000000   0.000000  0.000000\n16   test     inflation_up   0.403509  0.491464   0.000000   1.000000  0.403509\n17   test      growth_down   0.428070  0.495669   0.000000   1.000000  0.428070",
+    "regime_timeline": "          date  risk_off  ...  inflation_trend  vix_quartile\n0   2011-06-03       0.0  ...         0.034590            Q2\n1   2011-06-10       0.0  ...         0.034590            Q3\n2   2011-06-17       0.0  ...         0.034590            Q3\n3   2011-06-24       0.0  ...         0.034590       Q4_high\n4   2011-07-01       0.0  ...         0.035023       Q4_high\n..         ...       ...  ...              ...           ...\n784 2026-06-12       1.0  ...         0.037550       Q4_high\n785 2026-06-19       0.0  ...         0.037550            Q3\n786 2026-06-26       0.0  ...         0.037550            Q3\n787 2026-07-03       0.0  ...         0.037550            Q3\n788 2026-07-10       0.0  ...         0.037550            Q2\n\n[789 rows x 11 columns]",
+    "regime_transitions": "      regime_flag  n_transitions  ...  avg_spell_on_weeks  avg_spell_off_weeks\n0        risk_off             90  ...            3.911111            13.326087\n1  curve_inverted              0  ...                 NaN           789.000000\n2    inflation_up             20  ...           29.545455            46.400000\n3     growth_down             14  ...           56.714286            49.000000\n\n[4 rows x 5 columns]",
+    "performance_by_regime": "       regime_flag regime_state  ...    sharpe  hit_rate\n0         risk_off           on  ...  1.410611  0.636364\n1         risk_off           on  ... -0.365636  0.505682\n2         risk_off           on  ...  1.149456  0.613636\n3         risk_off           on  ...  1.149456  0.613636\n4         risk_off          off  ...  0.236466  0.549755\n5         risk_off          off  ...  0.334230  0.520392\n6         risk_off          off  ...  0.500987  0.549755\n7         risk_off          off  ...  0.500987  0.549755\n8   curve_inverted          off  ...  0.583825  0.569075\n9   curve_inverted          off  ...  0.100510  0.517110\n10  curve_inverted          off  ...  0.670849  0.564005\n11  curve_inverted          off  ...  0.670849  0.564005\n12    inflation_up           on  ... -0.185617  0.538462\n13    inflation_up           on  ...  0.443939  0.538462\n14    inflation_up           on  ...  0.451448  0.538462\n15    inflation_up           on  ...  0.451448  0.538462\n16    inflation_up          off  ...  1.306935  0.590517\n17    inflation_up          off  ... -0.156684  0.502155\n18    inflation_up          off  ...  0.857972  0.581897\n19    inflation_up          off  ...  0.857972  0.581897\n20     growth_down           on  ...  0.563940  0.556675\n21     growth_down           on  ... -0.059163  0.503778\n22     growth_down           on  ...  0.599746  0.561713\n23     growth_down           on  ...  0.599746  0.561713\n24     growth_down          off  ...  0.608290  0.581633\n25     growth_down          off  ...  0.273441  0.530612\n26     growth_down          off  ...  0.743053  0.566327\n27     growth_down          off  ...  0.743053  0.566327\n\n[28 rows x 7 columns]",
+    "m1_ic_by_regime": "      regime_flag regime_state   ic_mean  n_weeks\n0        risk_off           on -0.026429       50\n1        risk_off          off  0.123556      239\n2  curve_inverted          off  0.097243      289\n3    inflation_up           on  0.041304      119\n4    inflation_up          off  0.135084      170\n5     growth_down           on  0.108021      122\n6     growth_down          off  0.089176      167",
+    "m2_auc_by_regime": "      regime_flag regime_state       auc  n_trades  base_rate\n0        risk_off           on  0.601087       300   0.523333\n1        risk_off          off  0.596146      1434   0.500000\n2  curve_inverted          off  0.596445      1734   0.504037\n3    inflation_up           on  0.564556       714   0.488796\n4    inflation_up          off  0.639407      1020   0.514706\n5     growth_down           on  0.635273       732   0.521858\n6     growth_down          off  0.589443      1002   0.491018",
+    "regime_market_context": "   period          feature       mean       std        min        max    pct_on\n0   train        vix_level  17.143609  6.766781   9.510000  42.960899       NaN\n1   train    credit_stress   2.574803  0.467445   1.679900   3.560400       NaN\n2   train      yield_curve   1.192580  0.721641   0.069900   2.600100       NaN\n3   train     growth_trend   0.003236  0.036041  -0.160477   0.043536       NaN\n4   train  inflation_trend   0.017064  0.008760  -0.001053   0.037550       NaN\n5   train         risk_off   0.252000  0.434596   0.000000   1.000000  0.252000\n6   train   curve_inverted   0.000000  0.000000   0.000000   0.000000  0.000000\n7   train     inflation_up   0.412000  0.492688   0.000000   1.000000  0.412000\n8   train      growth_down   0.550000  0.497992   0.000000   1.000000  0.550000\n9    test        vix_level  19.180142  5.184606  11.930000  42.960899       NaN\n10   test    credit_stress   1.875026  0.201657   1.679900   2.420000       NaN\n11   test      yield_curve   0.423764  0.424189   0.069900   1.580000       NaN\n12   test     growth_trend   0.008076  0.018691  -0.056806   0.043536       NaN\n13   test  inflation_trend   0.032048  0.006286   0.013204   0.037550       NaN\n14   test         risk_off   0.173010  0.378912   0.000000   1.000000  0.173010\n15   test   curve_inverted   0.000000  0.000000   0.000000   0.000000  0.000000\n16   test     inflation_up   0.411765  0.493007   0.000000   1.000000  0.411765\n17   test      growth_down   0.422145  0.494758   0.000000   1.000000  0.422145",
     "charts": [
       "vix_and_flags.png",
       "regime_timeline.png",
@@ -362,36 +366,36 @@
   },
   "m2_deep_summary": {
     "m2_metrics": {
-      "accuracy": 0.5415204678362573,
-      "precision": 0.57,
-      "recall": 0.3337236533957845,
-      "f1": 0.42097488921713444,
-      "brier_score": 0.24584555143502193,
+      "accuracy": 0.5005767012687428,
+      "precision": 0.5833333333333334,
+      "recall": 0.032036613272311214,
+      "f1": 0.06073752711496746,
+      "brier_score": 0.24723030268366436,
       "confusion_matrix": [
         [
-          641,
-          215
+          840,
+          20
         ],
         [
-          569,
-          285
+          846,
+          28
         ]
       ],
-      "base_rate": 0.4994152046783626,
-      "n_trades": 1710,
-      "mean_p_winners": 0.525246191798668,
-      "mean_p_losers": 0.5120948397104907,
-      "mae": 0.493446160816443,
-      "mean_diff": 0.019247620227042437,
-      "auc": 0.5868111033290289,
-      "auc_pr": 0.545290924290073
+      "base_rate": 0.5040369088811996,
+      "n_trades": 1734,
+      "mean_p_winners": 0.46127143058187825,
+      "mean_p_losers": 0.44609804186895424,
+      "mae": 0.49278724664287143,
+      "mean_diff": -0.050290919068130165,
+      "auc": 0.596445106700016,
+      "auc_pr": 0.5758678487312664
     },
-    "calibration_table": "           bucket    n  mean_pred  realized\n0   (0.391, 0.46]  171   0.442445  0.345029\n1   (0.46, 0.477]  171   0.468760  0.380117\n2   (0.477, 0.49]  171   0.483362  0.374269\n3   (0.49, 0.504]  171   0.497500  0.508772\n4  (0.504, 0.518]  171   0.510943  0.473684\n5  (0.518, 0.533]  171   0.525034  0.596491\n6  (0.533, 0.549]  171   0.540862  0.619883\n7  (0.549, 0.562]  171   0.555813  0.643275\n8  (0.562, 0.577]  171   0.568730  0.555556\n9  (0.577, 0.645]  171   0.593179  0.497076",
-    "decile_returns": "           decile    n  mean_p_success  mean_trade_return  hit_rate\n0   (0.391, 0.46]  169        0.442290          -0.005154  0.349112\n1   (0.46, 0.477]  169        0.468883          -0.003885  0.390533\n2   (0.477, 0.49]  168        0.483318          -0.008523  0.363095\n3   (0.49, 0.504]  169        0.497287           0.003088  0.520710\n4  (0.504, 0.518]  168        0.510787          -0.002097  0.482143\n5  (0.518, 0.533]  169        0.524893           0.013125  0.603550\n6  (0.533, 0.549]  168        0.540845           0.016906  0.642857\n7  (0.549, 0.562]  169        0.555839           0.013165  0.644970\n8  (0.562, 0.577]  168        0.568783           0.008298  0.565476\n9  (0.577, 0.645]  169        0.593276          -0.007490  0.502959",
-    "feature_importance": "                feature  coefficient  abs_coefficient\n0             M1_signal     0.359814         0.359814\n1          growth_trend    -0.353645         0.353645\n2        momentum_score    -0.336481         0.336481\n3             vix_level    -0.307567         0.307567\n4             z_mom_26w     0.275498         0.275498\n5               vol_12w     0.256445         0.256445\n6       inflation_trend     0.243282         0.243282\n7   mom_vol_interaction    -0.239478         0.239478\n8             z_vol_12w    -0.238310         0.238310\n9           growth_down    -0.233720         0.233720\n10        m1_x_risk_off    -0.221918         0.221918\n11      corr_to_spy_26w     0.213968         0.213968\n12             risk_off    -0.211320         0.211320\n13          trend_score    -0.181230         0.181230\n14          macro_score     0.180286         0.180286",
-    "metrics_by_asset": "  ticker  n_trades  base_rate       auc  approval_rate  mean_trade_return\n0    GLD       265   0.569811  0.557802       0.452830           0.012289\n1    HYG       285   0.336842  0.497465       0.000000          -0.003023\n2    SPY       241   0.572614  0.455537       0.605809           0.002055\n3    TLT       255   0.486275  0.459616       0.062745           0.002413\n4    VEA       232   0.577586  0.571352       0.456897           0.010343\n5    VNQ       254   0.448819  0.478008       0.188976          -0.010680\n6    VWO       178   0.544944  0.619829       0.359551           0.008413",
-    "metrics_by_regime": "   risk_off  n_trades  base_rate  ...  curve_inverted  inflation_up  growth_down\n0       0.0      1410   0.504255  ...             NaN           NaN          NaN\n1       1.0       300   0.476667  ...             NaN           NaN          NaN\n2       NaN      1710   0.499415  ...             0.0           NaN          NaN\n3       NaN      1020   0.516667  ...             NaN           0.0          NaN\n4       NaN       690   0.473913  ...             NaN           1.0          NaN\n5       NaN       978   0.481595  ...             NaN           NaN          0.0\n6       NaN       732   0.523224  ...             NaN           NaN          1.0\n\n[7 rows x 9 columns]",
-    "architecture_benchmark": "         variant           model_type  ...  test_auc  asset_heads\n0  legacy_global  logistic_regression  ...  0.572535            0\n1     configured  logistic_regression  ...  0.586212            0\n\n[2 rows x 9 columns]",
+    "calibration_table": "           bucket    n  mean_pred  realized\n0  (0.325, 0.394]  174   0.377281  0.385057\n1  (0.394, 0.412]  173   0.402867  0.381503\n2  (0.412, 0.424]  173   0.418347  0.421965\n3  (0.424, 0.437]  174   0.430545  0.385057\n4   (0.437, 0.45]  173   0.443292  0.526012\n5   (0.45, 0.465]  173   0.457237  0.572254\n6  (0.465, 0.479]  174   0.471931  0.603448\n7  (0.479, 0.495]  173   0.486363  0.606936\n8  (0.495, 0.522]  173   0.507152  0.543353\n9  (0.522, 0.585]  174   0.542402  0.614943",
+    "decile_returns": "           decile    n  mean_p_success  mean_trade_return  hit_rate\n0  (0.325, 0.394]  171        0.376984          -0.005952  0.391813\n1  (0.394, 0.412]  171        0.402760          -0.004592  0.385965\n2  (0.412, 0.425]  171        0.418430          -0.000854  0.426901\n3  (0.425, 0.437]  171        0.430637          -0.008194  0.391813\n4  (0.437, 0.451]  171        0.443334           0.004182  0.538012\n5  (0.451, 0.465]  171        0.457405           0.007948  0.584795\n6  (0.465, 0.479]  171        0.472034           0.012214  0.602339\n7  (0.479, 0.495]  171        0.486499           0.013258  0.619883\n8  (0.495, 0.522]  171        0.507695           0.003275  0.555556\n9  (0.522, 0.585]  171        0.542767           0.006696  0.614035",
+    "feature_importance": "                feature  coefficient  abs_coefficient\n0           growth_down    -0.298432         0.298432\n1        momentum_score     0.272353         0.272353\n2   mom_vol_interaction    -0.266978         0.266978\n3             M1_signal     0.255373         0.255373\n4          growth_trend    -0.237952         0.237952\n5           rel_mom_12w     0.235873         0.235873\n6               mom_26w    -0.235396         0.235396\n7     carry_yield_level    -0.210877         0.210877\n8               vol_26w    -0.190956         0.190956\n9              m1_x_vol    -0.190609         0.190609\n10         rank_mom_12w    -0.181352         0.181352\n11         m1_score_abs    -0.175040         0.175040\n12            z_mom_26w     0.174143         0.174143\n13         drawdown_26w     0.167683         0.167683\n14         trend_signal     0.165791         0.165791",
+    "metrics_by_asset": "          ticker  n_trades  ...  approval_rate  mean_trade_return\n0      GOLD_SPOT       275  ...       0.018182           0.010855\n1      MSCI_EAFE       246  ...       0.081301           0.007810\n2        MSCI_EM       230  ...       0.000000           0.005672\n3          SP500       245  ...       0.089796           0.001352\n4       UST_7_10       243  ...       0.000000          -0.002813\n5  US_HIGH_YIELD       238  ...       0.000000           0.000632\n6        US_REIT       257  ...       0.003891          -0.004542\n\n[7 rows x 6 columns]",
+    "metrics_by_regime": "   risk_off  n_trades  base_rate  ...  curve_inverted  inflation_up  growth_down\n0       0.0      1434   0.500000  ...             NaN           NaN          NaN\n1       1.0       300   0.523333  ...             NaN           NaN          NaN\n2       NaN      1734   0.504037  ...             0.0           NaN          NaN\n3       NaN      1020   0.514706  ...             NaN           0.0          NaN\n4       NaN       714   0.488796  ...             NaN           1.0          NaN\n5       NaN      1002   0.491018  ...             NaN           NaN          0.0\n6       NaN       732   0.521858  ...             NaN           NaN          1.0\n\n[7 rows x 9 columns]",
+    "architecture_benchmark": "         variant           model_type  ...  test_auc  asset_heads\n0  legacy_global  logistic_regression  ...  0.553905            0\n1     configured  logistic_regression  ...  0.597354            0\n\n[2 rows x 9 columns]",
     "charts": [
       "m2_roc_calibration.png",
       "m2_feature_importance.png",
@@ -399,9 +403,9 @@
     ]
   },
   "m3_summary": {
-    "allocation_summary": "  period allocation_state  count     share\n0   full        no_signal    986  0.142857\n1   full          m3_zero   2958  0.428571\n2   full        m3_active   2958  0.428571\n3  train        no_signal    701  0.142857\n4  train          m3_zero   2329  0.474628\n5  train        m3_active   1877  0.382515\n6   test        no_signal    285  0.142857\n7   test          m3_zero    629  0.315288\n8   test        m3_active   1081  0.541855",
-    "rejection_analysis": "  allocation_state     n  ...  mean_trade_return  hit_rate\n0          m3_zero   629  ...          -0.003886  0.399046\n1        m3_active  1081  ...           0.006635  0.557817\n\n[2 rows x 6 columns]",
-    "mode_comparison": "  m3_mode  m1_candidates  ...  m3_zero_share  mean_m3_size_on_candidates\n0  binary           5916  ...       0.833333                    0.166667\n1  linear           5916  ...       0.500000                    0.039265\n2    ecdf           5916  ...       0.000000                    0.546215\n\n[3 rows x 6 columns]",
+    "allocation_summary": "  period allocation_state  count     share\n0   full        no_signal    791  0.143219\n1   full          m3_zero   2708  0.490313\n2   full        m3_active   2024  0.366467\n3  train        no_signal    502  0.143429\n4  train          m3_zero   1282  0.366286\n5  train        m3_active   1716  0.490286\n6   test        no_signal    289  0.142857\n7   test          m3_zero   1426  0.704894\n8   test        m3_active    308  0.152249",
+    "rejection_analysis": "  allocation_state     n  ...  mean_trade_return  hit_rate\n0          m3_zero  1426  ...           0.002334  0.488780\n1        m3_active   308  ...           0.004919  0.574675\n\n[2 rows x 6 columns]",
+    "mode_comparison": "  m3_mode  m1_candidates  ...  m3_zero_share  mean_m3_size_on_candidates\n0  binary           4732  ...       0.887997                    0.112003\n1  linear           4732  ...       0.572274                    0.030359\n2    ecdf           4732  ...       0.000211                    0.393405\n\n[3 rows x 6 columns]",
     "chart": "m3_allocation_states.png"
   }
 }

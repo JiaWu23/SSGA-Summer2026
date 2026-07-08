@@ -7,7 +7,7 @@
 Default tickers:
 
 ```text
-SPY, TLT, GLD, VEA, VWO, HYG, VNQ
+SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT
 ```
 
 Preferred fields:
@@ -111,16 +111,16 @@ Other risk features:
 ```text
 drawdown_26w = price / rolling_max(price, 26 weeks) - 1
 skew_26w = rolling skewness
-corr_to_spy_26w = rolling correlation to SPY
+corr_to_sp500_26w = rolling correlation to SP500 (market sleeve)
 ```
 
 ---
 
 ### 4. Valuation / Carry Proxies
 
-ETF-level valuation may be limited. Use proxies carefully:
+Sleeve-level valuation may be limited. Use proxies carefully:
 
-- TLT: yield level / yield change as rate environment proxy.
+- UST_7_10: yield level / yield change as rate environment proxy.
 - HYG: credit spread proxy such as BAA10Y.
 - GLD: real-rate proxy using nominal rates minus inflation trend.
 - Equities: earnings yield would require external data; optional if Bloomberg data is available.

@@ -31,7 +31,7 @@ A three-layer design from Marcos López de Prado’s meta-labeling literature (o
 
 ### M1 (side / opportunity model)
 
-Rule-based model that scores each ETF each week using factors (momentum, trend, macro, risk). It does **not** use machine learning in the default setup.
+Rule-based model that scores each **index sleeve** each week using factors (momentum, trend, macro, risk). It does **not** use machine learning in the default setup.
 
 - **`M1_signal`**: +1 = go long, −1 = go short, 0 = no trade.
 - **`M1_score`**: Continuous score before discretizing to a signal.
@@ -92,8 +92,8 @@ These strings appear in backtest outputs, charts, and `metrics_table`.
 
 | Code / report name | Plain English |
 | --- | --- |
-| **`equal_weight_1_7`** / **Equal Weight 1/7** | Each week, split money **equally** across all 7 ETFs (~14.3% each). Passive benchmark. |
-| **`sixty_forty`** / **60/40** | Classic benchmark: 60% equities (SPY), 40% bonds (TLT). Not equal-weight. |
+| **`equal_weight_1_7`** / **Equal Weight 1/7** | Each week, split money **equally** across all 7 index sleeves (~14.3% each). Passive benchmark. |
+| **`sixty_forty`** / **60/40** | Classic benchmark blend across equity and bond sleeves (see `config/config.yaml` `benchmarks.sixty_forty`). |
 | **`m1_only`** / **M1 Only** | Follow M1 signals only; no M2/M3 sizing overlay (beyond portfolio vol target). |
 | **`m1_m2_m3_binary`** | M1 + M2 probability + binary M3 (all-or-nothing at threshold T). |
 | **`m1_m2_m3_linear`** | M1 + M2 + linear M3 sizing. |
@@ -103,19 +103,25 @@ These strings appear in backtest outputs, charts, and `metrics_table`.
 **Long-only** vs **long/short**:
 
 - **Long-only**: Only buy assets (positive weights). Shorts disabled (`allow_short: false`).
-- **Long/short**: M1 may emit −1 and bet against an asset. Often weaker in this ETF universe.
+- **Long/short**: M1 may emit −1 and bet against a sleeve. Often weaker in this index universe.
 
 ---
 
 ## Investments and instruments
 
-### ETF (Exchange-Traded Fund)
+### Index sleeve
 
-A fund that trades on a stock exchange like a share, but holds a **basket** of assets. This project uses ETFs as **proxies** for whole asset classes (e.g. SPY ≈ U.S. large-cap stocks).
+An **asset-class benchmark** the strategy allocates to — e.g. `SP500` (U.S. large-cap), `UST_7_10` (intermediate Treasuries). The pipeline uses **index or proxy price series** for signals; implementation may use ETFs elsewhere.
 
-### Ticker
+Current seven sleeves: `SP500`, `MSCI_EAFE`, `MSCI_EM`, `UST_7_10`, `US_HIGH_YIELD`, `GOLD_SPOT`, `US_REIT`.
 
-Short symbol for a tradable instrument: `SPY`, `TLT`, `GLD`, etc.
+### ETF (Exchange-Traded Fund) — proxy only
+
+Some sleeves download via **ETF trackers** (e.g. `EFA` for EAFE) when free true-index history is unavailable. ETFs are **not** the research universe label — see [DATA_SOURCES_AND_ETL.md](DATA_SOURCES_AND_ETL.md).
+
+### Ticker / sleeve ID
+
+Short identifier in the panel `ticker` column — index sleeve names above (not exchange trade symbols).
 
 ### Asset class
 
@@ -123,7 +129,7 @@ Category of investments with similar behavior: equities, government bonds, credi
 
 ### Tradable universe
 
-The seven ETFs the strategy can actually allocate to: SPY, TLT, GLD, VEA, VWO, HYG, VNQ.
+The seven index sleeves the strategy can allocate to each week, plus `VIX` for features only.
 
 ### Macro / risk indicators (not traded)
 
@@ -143,7 +149,7 @@ Decisions and weight updates happen once per week (Friday close in this project)
 
 ### Weight
 
-Fraction of portfolio capital allocated to an asset. Sum of absolute weights = **gross exposure**. Example: 0.25 on SPY = 25% of capital in SPY.
+Fraction of portfolio capital allocated to a sleeve. Sum of absolute weights = **gross exposure**. Example: 0.25 on `SP500` = 25% of capital in that sleeve.
 
 ### Long / short / flat
 
@@ -171,11 +177,11 @@ Scale portfolio weights so realized volatility hovers near a target (e.g. **12% 
 
 ### Exposure cap / constraint
 
-Limits such as: max 25% in one ETF (`max_abs_asset_weight`), max total gross exposure 100% (`max_gross_exposure`).
+Limits such as: max 25% in one sleeve (`max_abs_asset_weight`), max total gross exposure 100% (`max_gross_exposure`).
 
 ### Top-K allocation (`top_k`)
 
-Each week, rank all ETFs by M1 score and trade only the **top K** names (default K=3). Relative ranking, not a fixed score cutoff.
+Each week, rank all sleeves by M1 score and trade only the **top K** names (default K=3). Relative ranking, not a fixed score cutoff.
 
 ### Threshold allocation
 
@@ -243,7 +249,7 @@ Strategy return minus benchmark return (e.g. vs equal-weight). Can be negative e
 | **Sharpe** | Return per unit of **total** volatility (vs cash) |
 | **IR** | Consistency of **beating equal-weight** |
 
-M1+M2+M3 ECDF often **raises Sharpe** but **lowers IR** because ECDF scales positions down. When all seven ETFs rally, EW captures the full move; a selective, under-invested sleeve lags. See [reports/ir_attribution_analysis.md](reports/ir_attribution_analysis.md).
+M1+M2+M3 ECDF often **raises Sharpe** but **lowers IR** because ECDF scales positions down. When all seven index sleeves rally, EW captures the full move; a selective, under-invested sleeve lags. See [reports/ir_attribution_analysis.md](reports/ir_attribution_analysis.md).
 
 ### Cumulative return
 
@@ -351,7 +357,7 @@ Accidentally using **future** information in past decisions. Invalidates backtes
 | **OOS** | Out-of-sample. |
 | **EW** | Equal weight (benchmark). |
 | **DD** | Drawdown. |
-| **REIT** | Real Estate Investment Trust — property-linked equities (VNQ). |
+| **REIT** | Real Estate Investment Trust — property-linked equities (US_REIT). |
 | **FRED** | U.S. Federal Reserve economic data API. |
 | **VIX** | CBOE Volatility Index — market “fear” gauge. |
 | **W-FRI** | Weekly data aligned to Friday. |
@@ -366,7 +372,7 @@ Accidentally using **future** information in past decisions. Invalidates backtes
 | `portfolio.transaction_cost_bps` | Trading cost assumption (default 5 bps) |
 | `portfolio.vol_target_ann` | Target annual volatility (default 12%) |
 | `labels.positive_threshold` | Min forward return to call a long trade “successful” |
-| `models.m1.top_k` | How many ETFs to select each week |
+| `models.m1.top_k` | How many sleeves to select each week |
 | `split.train_end` / `split.test_start` | Where in-sample ends and OOS begins |
 
 Full table: [final_report.md — Configuration Parameters](reports/final_report.md#configuration-parameters-affecting-performance).
@@ -391,7 +397,7 @@ Full table: [final_report.md — Configuration Parameters](reports/final_report.
 
 ## Mental model (one paragraph)
 
-Each **Friday**, the pipeline scores seven ETFs with **M1**, picks candidates (e.g. top 3 longs), asks **M2** “how likely is each trade to work?”, converts that to a bet size with **M3**, applies **portfolio** risk limits and **vol targeting**, and simulates what would have happened historically. **Equal-weight** and **60/40** are simple benchmarks. **Sharpe** and **drawdown** tell you whether the strategy improved the return-versus-pain tradeoff — not just raw return.
+Each **Friday**, the pipeline scores seven index sleeves with **M1**, picks candidates (e.g. top 3 longs), asks **M2** “how likely is each trade to work?”, converts that to a bet size with **M3**, applies **portfolio** risk limits and **vol targeting**, and simulates what would have happened historically. **Equal-weight** and **60/40** are simple benchmarks. **Sharpe** and **drawdown** tell you whether the strategy improved the return-versus-pain tradeoff — not just raw return.
 
 ---
 

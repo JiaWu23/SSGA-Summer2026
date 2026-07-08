@@ -51,8 +51,8 @@ class SplitConfig:
     train_end: str = "2020-12-31"
     test_start: str = "2021-01-01"
     test_end: str | None = None
-    # When True (default), keep only weeks where all 7 ETFs have prices (~2007+).
-    # When False, allow partial universes so train_start can predate the youngest ETF.
+    # When True (default), keep only weeks where all 7 index sleeves have prices (~2011+).
+    # When False, allow partial universes so train_start can predate the shortest-history sleeve.
     require_full_universe: bool = True
 
 

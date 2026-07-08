@@ -421,7 +421,7 @@ def _data_components_section(analysis: AssetAnalysisResult) -> list[str]:
     lines = [
         "## Data & Components Used",
         "",
-        "The pipeline combines **seven tradable ETF proxies** for major asset classes plus **macro/risk indicators** "
+        "The pipeline combines **seven index sleeves** (asset-class benchmarks) plus **macro/risk indicators** "
         "for regime features. Prices are resampled to **weekly** (Friday close) from daily adjusted-close data.",
         "",
         "| Field | Value |",
@@ -431,7 +431,7 @@ def _data_components_section(analysis: AssetAnalysisResult) -> list[str]:
         f"| Frequency | Weekly (W-FRI) |",
         f"| Price field | Adjusted close |",
         "",
-        "### Tradable ETF Components",
+        "### Index Sleeves (tradable universe)",
         "",
         _markdown_table(pd.DataFrame(asset_rows)),
         "",
@@ -454,7 +454,7 @@ def _individual_asset_section(analysis: AssetAnalysisResult, *, image_prefix: st
     lines = [
         "## Individual Asset Performance (Buy-and-Hold)",
         "",
-        "Each row below is a **standalone buy-and-hold** of one ETF: 100% allocated to that asset, "
+        "Each row below is a **standalone buy-and-hold** of one index sleeve: 100% allocated to that asset, "
         "rebalanced weekly, **no transaction costs**, no M1/M2 overlay. This shows how each building block "
         "performed on its own before any strategy logic. "
         "Charts also overlay **M1** and **M1+M2** portfolio models (long-only and long/short) for comparison.",
@@ -510,7 +510,7 @@ def generate_asset_component_report(
     lines = [
         "# Asset & Component Analysis",
         "",
-        "Standalone buy-and-hold performance for each ETF in the universe, plus documentation of all data inputs.",
+        "Standalone buy-and-hold performance for each index sleeve in the universe, plus documentation of all data inputs.",
         "",
         "**Research use only — not investment advice.**",
         "",

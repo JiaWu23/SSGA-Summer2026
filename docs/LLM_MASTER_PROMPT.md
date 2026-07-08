@@ -44,7 +44,7 @@ Use weekly data by default. Weekly data should be created from daily adjusted-cl
 Use these tickers:
 
 ```text
-SPY, TLT, GLD, VEA, VWO, HYG, VNQ
+SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT
 ```
 
 ### Train/Test Split

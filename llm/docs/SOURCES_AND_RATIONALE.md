@@ -57,7 +57,7 @@ https://pandas-datareader.readthedocs.io/en/latest/readers/fred.html
 | Choice | Rationale | Alternative |
 |---|---|---|
 | Weekly data | Larger sample than monthly while reducing daily noise | Daily data with higher turnover controls |
-| 7 ETF universe | Covers broad global risk premia with manageable complexity | Add commodities, currencies, or more fixed income |
+| 7 index sleeve universe | Covers broad global risk premia with manageable complexity | Add commodities, currencies, or more fixed income |
 | M1 high-recall model | Meta-labeling benefits from candidate signals that M2 can filter | Stricter M1 with fewer signals |
 | M2 probability output | Needed for probability-based sizing | Binary-only filter |
 | ECDF sizing | Maps model confidence into relative historical confidence | Linear or sigmoid sizing |

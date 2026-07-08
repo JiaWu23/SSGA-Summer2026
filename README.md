@@ -30,7 +30,7 @@ The generated `reports/final_report.md` now also includes portfolio-level test-p
 
 ## Asset Universe
 
-SPY, TLT, GLD, VEA, VWO, HYG, VNQ (weekly, 7-asset global ETF basket).
+SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT (weekly, 7-sleeve global macro index universe).
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ python -m src.run_pipeline --config config/config.yaml
 python -m src.run_pipeline --train-end 2018-12-31 --test-start 2019-01-01
 python -m src.run_pipeline --train-start 2008-01-01 --train-end 2015-12-31 --test-start 2016-01-01
 
-# Train before all 7 ETFs existed (partial universe; re-download if cache is too short)
+# Train before all 7 index sleeves existed (partial universe; re-download if cache is too short)
 python -m src.run_pipeline --data-start 2004-01-01 --train-start 2005-01-01 --train-end 2006-12-31 \
   --test-start 2007-01-01 --partial-universe --refresh-data
 
@@ -102,7 +102,7 @@ Configurable in `config/config.yaml` under `models.m1` and `portfolio`:
 - No time-series shuffling
 - Features use only data available at or before signal time
 - Train/test split configurable in `config/config.yaml` or via `--data-start`, `--train-start`, `--train-end`, `--test-start`, `--test-end`
-- `train_start` may be before 2006, but the default **full 7-asset** panel starts ~2007 when VEA/HYG exist; use `--partial-universe` for earlier subsets
+- `train_start` may be before 2006, but the default **full 7-asset** panel starts ~2007 when US_REIT index history is available (~2011); use `--partial-universe` for earlier subsets
 - Default split: train 2006–2020; test 2021–latest
 - LLM features disabled by default
 
@@ -113,7 +113,7 @@ See [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md) and [docs/ACCEPTANCE_TESTS.md
 - [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) — branch-level overview, methods tried, latest insights, and M1/M2 interpretation
 - [`DATA_SOURCES_AND_ETL.md`](DATA_SOURCES_AND_ETL.md) — source data, ETL flow, validation checks, and reviewer caveats
 - [`reports/final_report.md`](reports/final_report.md) — strategy comparison (long-only vs long/short M1)
-- [`reports/assets/asset_component_analysis.md`](reports/assets/asset_component_analysis.md) — per-asset buy-and-hold (SPY/S&P 500, bonds, gold, etc.) and data source documentation
+- [`reports/assets/asset_component_analysis.md`](reports/assets/asset_component_analysis.md) — per-sleeve buy-and-hold (SP500, bonds, gold, etc.) and data source documentation
 
 ## Grid Search (40 runs)
 

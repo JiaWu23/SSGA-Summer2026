@@ -11,6 +11,18 @@ free series per sleeve (ETF trackers where the free index is too short / unavail
 and reserve true long-history index for **Bloomberg** at the implementation stage.
 Switching to this data did NOT change conclusions vs the ETF run.
 
+| Key (legacy) | Root sleeve ID | Ideal index |
+|---|---|---|
+| SPY | SP500 | S&P 500 Index |
+| VEA | MSCI_EAFE | MSCI EAFE Index |
+| VWO | MSCI_EM | MSCI Emerging Markets Index |
+| TLT | UST_7_10 | U.S. Treasury 7-10Y |
+| HYG | US_HIGH_YIELD | High Yield Credit |
+| GLD | GOLD_SPOT | Gold spot |
+| VNQ | US_REIT | Nasdaq U.S. Benchmark REIT Index |
+
+**Active root pipeline** uses the **Root sleeve ID** column. This subfolder maps legacy keys to index/proxy fetch symbols.
+
 | Key | Asset class | Ideal index | What we actually fetch (free, auto) | History |
 |---|---|---|---|---|
 | SPY | U.S. Equity | S&P 500 | Yahoo `^GSPC` (the index) | 2000+ |

@@ -8,7 +8,7 @@
 
 ## One-Sentence Pitch
 
-A weekly-rebalanced, seven-ETF global macro basket where a rule-based primary model proposes trades, a secondary classifier estimates trade quality, and a sizing layer turns that into portfolio weights—with strict chronological train/test discipline and institutional-style risk constraints.
+A weekly-rebalanced, seven-sleeve global macro basket where a rule-based primary model proposes trades, a secondary classifier estimates trade quality, and a sizing layer turns that into portfolio weights—with strict chronological train/test discipline and institutional-style risk constraints.
 
 ---
 
@@ -17,7 +17,7 @@ A weekly-rebalanced, seven-ETF global macro basket where a rule-based primary mo
 ```mermaid
 flowchart TB
   subgraph data [Data Layer]
-    MKT[ETF prices via yfinance]
+    MKT[index/proxy prices via IndexProvider]
     MACRO[FRED macro series]
     VIX[VIX risk sentiment]
   end
@@ -55,7 +55,7 @@ flowchart TB
 ```
 
 **Frequency:** Weekly (Friday close), rebalance weekly.  
-**Universe:** SPY, TLT, GLD, VEA, VWO, HYG, VNQ — a compact multi-asset sleeve (equity, rates, credit, gold, REITs, EM/DM).
+**Universe:** SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT — a compact multi-asset sleeve (equity, rates, credit, gold, REITs, EM/DM).
 
 ---
 
@@ -75,21 +75,21 @@ Per Joubert (2022) and López de Prado, side (M1), trade quality probability (M2
 
 ## Pipeline Stages
 
-1. **Data ingest** — ETF prices + FRED macro (CPI, unemployment, industrial production, Fed funds, 10Y yield, curve, credit spread) + VIX. Cached parquet for repeat runs.
+1. **Data ingest** — Index/proxy prices + FRED macro (CPI, unemployment, industrial production, Fed funds, 10Y yield, curve, credit spread) + VIX. Cached parquet for repeat runs.
 
-2. **Panel construction** — By default, only weeks where **all seven ETFs** have data (~2007 onward; VEA/HYG are the binding constraints). Optional partial-universe mode for earlier history.
+2. **Panel construction** — By default, only weeks where **all seven index sleeves** have data (~2011 onward; US_REIT is the binding constraint). Optional partial-universe mode for earlier history.
 
 3. **Feature engineering** — Per-asset factors: momentum (4/12/26/52w), trend, volatility, drawdown; cross-asset dispersion; macro with **4-week publication lag**; features shifted so nothing uses future data.
 
 4. **Labels** — Forward **4-week** return; long success if return > 0.5% after a 0.1% cost hurdle; analogous for shorts.
 
-5. **M1 (rule-based)** — Weighted score: momentum 45%, trend 25%, macro 20%, risk penalty 10%, plus asset-class macro tilts and relative momentum/carry-style features. Current default uses a **weekly top-3 cross-sectional allocator**: each Friday, rank the ETF universe and allocate to the best three names. Pipeline still runs two diagnostic modes: long-only and long/short.
+5. **M1 (rule-based)** — Weighted score: momentum 45%, trend 25%, macro 20%, risk penalty 10%, plus asset-class macro tilts and relative momentum/carry-style features. Current default uses a **weekly top-3 cross-sectional allocator**: each Friday, rank the index sleeve universe and allocate to the best three names. Pipeline still runs two diagnostic modes: long-only and long/short.
 
 6. **M2 (logistic regression)** — Trained only where M1 ≠ 0. Predicts whether the forward trade beats the cost hurdle. Default threshold 0.55; optional probability calibration.
 
 7. **Position sizing** — M1 winners receive the full base budget by default (`conviction_sizing: false`); M2 variants then apply binary, linear, or ECDF probability sizing. Constraints: max 25% per asset, 100% gross exposure, ~1/7 base budget per name, 12% annualized volatility target.
 
-8. **Backtest** — Weekly returns, turnover, **5 bps** transaction costs. Compared to equal-weight 1/7 and a stylized 60/40 ETF blend.
+8. **Backtest** — Weekly returns, turnover, **5 bps** transaction costs. Compared to equal-weight 1/7 and a stylized 60/40 sleeve blend.
 
 9. **Reports** — `PROJECT_SUMMARY.md` for branch-level context, `DATA_SOURCES_AND_ETL.md` for source/ETL review, `reports/final_report.md` plus charts for generated results, and grid search outputs for parameter experiments.
 
@@ -109,7 +109,7 @@ Per Joubert (2022) and López de Prado, side (M1), trade quality probability (M2
 
 ### M1 allocation
 
-Momentum-heavy (45%) reflects trend persistence in ETF sleeves; macro (20%) adds regime context (rates, inflation, credit); risk penalty (10%) down-weights high-vol / stressed names. The current default is **top-K cross-sectional allocation** (`allocation_mode: top_k`, `top_k: 3`) rather than absolute score thresholds. This improved capital deployment while keeping the model interpretable.
+Momentum-heavy (45%) reflects trend persistence in index sleeves; macro (20%) adds regime context (rates, inflation, credit); risk penalty (10%) down-weights high-vol / stressed names. The current default is **top-K cross-sectional allocation** (`allocation_mode: top_k`, `top_k: 3`) rather than absolute score thresholds. This improved capital deployment while keeping the model interpretable.
 
 Threshold tuning still exists (`allocation_mode: threshold`) and can optimize a portfolio-level objective, but it is not the current default.
 
@@ -127,19 +127,19 @@ Weekly rebalance with a **one-month** forward window is a practical holding-peri
 |------------|-------|----------------|
 | `max_abs_asset_weight` | 25% | Single-name concentration limit |
 | `max_gross_exposure` | 100% | No leverage in base config |
-| `transaction_cost_bps` | 5 | Conservative round-trip friction for ETFs |
+| `transaction_cost_bps` | 5 | Conservative round-trip friction for sleeves |
 | `vol_target_ann` | 12% | Gross exposure scaling target for the active sleeve |
 
 ### Long-only vs long/short
 
-The pipeline **always runs both**. Current evidence favors **long-only** as the production-like sleeve. Long/short is useful diagnostically, but shorts have generally reduced returns in this upward-drifting ETF sample.
+The pipeline **always runs both**. Current evidence favors **long-only** as the production-like sleeve. Long/short is useful diagnostically, but shorts have generally reduced returns in this upward-drifting index sample.
 
 ---
 
 ## Benchmarks
 
-- **Equal weight 1/7** — Naive diversified ETF basket; primary excess-return benchmark.
-- **60/40-style ETF mix** — Stylized balanced reference (overweight bonds/credit vs gold).
+- **Equal weight 1/7** — Naive diversified index sleeve universe; primary excess-return benchmark.
+- **60/40-style sleeve blend** — Stylized balanced reference (overweight bonds/credit vs gold).
 
 Strategy variants: M1 only, M1+M2 (binary / linear / ECDF). Current discussion usually treats **M1-only** as the return-oriented sleeve and **M1+M2 ECDF** as the best risk-adjusted M1/M2 combination.
 
@@ -194,7 +194,7 @@ M1 is now strong enough to stand on its own as the return-oriented sleeve. M2 sh
 | Method | Outcome | Insight |
 |--------|---------|---------|
 | Absolute M1 thresholds | Too much cash, lower return | Good diagnostic mode, not best default |
-| Top-3 cross-sectional M1 | Improved deployment | Relative ranking fits a seven-ETF sleeve better |
+| Top-3 cross-sectional M1 | Improved deployment | Relative ranking fits a seven-sleeve sleeve better |
 | M1 conviction sizing | Suppressed return | Score works better for selection than fine-grained sizing |
 | 12% vol target | Improved return without breaking Sharpe | Prior defaults were under-deployed |
 | Long/short mode | Underperformed long-only | Short-side needs separate research |
@@ -251,12 +251,12 @@ Full table: `runs/grid_search/20260610_234123/results.csv` · Top 10: `summary.m
 
 ## Suggested 5-Minute Meeting Narrative
 
-1. **Problem:** Multi-asset ETF allocation with separable direction vs. sizing decisions.
+1. **Problem:** Multi-asset index-sleeve allocation with separable direction vs. sizing decisions.
 2. **Approach:** Meta-labeling — M1 proposes, M2 filters, sizing scales.
-3. **Universe & frequency:** Seven liquid ETFs, weekly.
-4. **Edge hypothesis:** Cross-sectional momentum/trend/macro ranks select the better ETFs; M2 improves risk allocation rather than raw alpha.
+3. **Universe & frequency:** Seven index sleeves, weekly.
+4. **Edge hypothesis:** Cross-sectional momentum/trend/macro ranks select the better sleeves; M2 improves risk allocation rather than raw alpha.
 5. **Evidence:** Long-only M1 nearly matches equal-weight return (7.32% vs 7.36%) with higher Sharpe (0.70 vs 0.57) and much lower drawdown (-21% vs -39%). M1+M2+M3 ECDF gives the best risk-adjusted profile (Sharpe ~0.96 test, +0.113 vs `main` ECDF).
-6. **Limitations:** Research stack, simplified costs, no live OMS, no capacity/impact modeling, sample starts ~2007 for full seven-ETF universe.
+6. **Limitations:** Research stack, simplified costs, no live OMS, no capacity/impact modeling, sample starts ~2007 for full seven-index sleeve universe.
 
 ---
 

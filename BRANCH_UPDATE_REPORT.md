@@ -1,7 +1,7 @@
 # Branch Update — Executive Summary
 
-**Branch:** `vitaly_week5` vs `main`  
-**Date:** July 2026  
+**Branch:** `vitaly_week5` (merged into active root)  
+**Date:** August 2026  
 **Audience:** Project managers, team leads, stakeholders  
 
 **Research use only — not investment advice.**
@@ -29,8 +29,9 @@ Five workstreams landed across the branch (~160 files, +7,400 lines — mostly d
 | 3 | **M1 weight tuning** | Holdout +0.008 Sharpe; **walk-forward rejected** IC weights (keep 45/25/20/10) |
 | 4 | **M2 ranking** | Test AUC **0.573 → 0.589** (+0.016) via enriched meta-features (52 vs 40 inputs) |
 | 5 | **Extended evaluation** | Walk-forward: **+0.177** mean ECDF edge, **4/6** folds positive |
+| 6 | **Index-first data** | Sleeve IDs (`SP500`, …); `IndexProvider`; signals on index/proxy series |
 
-**Unchanged vs `main`:** M1 top-K selection, train/test dates, portfolio caps, 12% vol target, data sources.
+**Unchanged vs prior `main`:** M1 top-K selection, train/test dates, portfolio caps, 12% vol target.
 
 ---
 
@@ -46,7 +47,7 @@ Five workstreams landed across the branch (~160 files, +7,400 lines — mostly d
 
 **Stakeholder narrative:**
 
-- **M1** selects ~3 ETFs per week (~43% of asset-weeks are long candidates); economics match `main`.
+- **M1** selects ~3 index sleeves per week (~43% of asset-weeks are long candidates); economics match prior `main`.
 - **M2** test AUC improved from **~0.57 to 0.59**; still weak ranking — value is in **M3 ECDF sizing**, not binary filter at 0.55.
 - **M3 binary** at T=0.55 approves ~99% of candidates (recall ≈ 1) — equals M1-only by design.
 - **M3 ECDF** vs `main`: Sharpe **0.85 → 0.96**, drawdown **-16.3% → -11.3%** on the 2021+ test window.

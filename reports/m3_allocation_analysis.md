@@ -2,19 +2,6 @@
 
 **Research use only — not investment advice.**
 
-## vs `main`
-
-| Item | `main` | `vitaly_week5` |
-| --- | --- | --- |
-| Sizing layer name | Implicit in backtest | Explicit **M3** (Joubert) |
-| Panel columns | None | `M3_size`, `allocation_state` |
-| Strategy keys | `m1_m2_ecdf` | `m1_m2_m3_ecdf` (alias kept) |
-| Allocation diagnostics | None | States: **57.1%** no_signal · **42.9%** m3_active |
-| ECDF test Sharpe (2021+) | 0.851 | **0.964** (+0.113) |
-| ECDF test max drawdown | -16.3% | **-11.3%** |
-
-Branch update: [Executive summary](../BRANCH_UPDATE_REPORT.md) · [Technical report](branch_update_vitaly_week5.md)
-
 ## M1 / M2 / M3 roles (Joubert framework)
 
 | Layer | Output | Question answered |
@@ -37,15 +24,15 @@ M3 is a **deterministic sizing rule**, not a classifier. Binary thresholding at 
 
 | period | allocation_state | count | share |
 | --- | --- | --- | --- |
-| full | no_signal | 3944 | 57.1429% |
-| full | m3_zero | 0 | 0.0000% |
-| full | m3_active | 2958 | 42.8571% |
-| train | no_signal | 2804 | 57.1429% |
+| full | no_signal | 3156 | 57.1429% |
+| full | m3_zero | 7 | 0.1267% |
+| full | m3_active | 2360 | 42.7304% |
+| train | no_signal | 2000 | 57.1429% |
 | train | m3_zero | 0 | 0.0000% |
-| train | m3_active | 2103 | 42.8571% |
-| test | no_signal | 1140 | 57.1429% |
-| test | m3_zero | 0 | 0.0000% |
-| test | m3_active | 855 | 42.8571% |
+| train | m3_active | 1500 | 42.8571% |
+| test | no_signal | 1156 | 57.1429% |
+| test | m3_zero | 7 | 0.3460% |
+| test | m3_active | 860 | 42.5111% |
 
 ![M3 allocation states](../data/backtests/long_only/figures/m3_allocation_states.png)
 
@@ -53,12 +40,13 @@ M3 is a **deterministic sizing rule**, not a classifier. Binary thresholding at 
 
 | allocation_state | n | mean_p_success | median_p_success | mean_trade_return | hit_rate |
 | --- | --- | --- | --- | --- | --- |
-| m3_active | 855 | 0.5957 | 0.5963 | 0.8266% | 58.9474% |
+| m3_zero | 7 | 0.4968 | 0.4965 | 0.7722% | 57.1429% |
+| m3_active | 860 | 0.5764 | 0.5778 | 0.8866% | 60.8140% |
 
 ## M3 rule comparison (binary vs linear vs ECDF)
 
 | m3_mode | m1_candidates | m3_zero_count | m3_active_count | m3_zero_share | mean_m3_size_on_candidates |
 | --- | --- | --- | --- | --- | --- |
-| binary | 2958 | 4 | 2954 | 0.1352% | 0.9986 |
-| linear | 2958 | 0 | 2958 | 0.0000% | 0.1844 |
-| ecdf | 2958 | 0 | 2958 | 0.0000% | 0.5321 |
+| binary | 2367 | 173 | 2194 | 7.3088% | 0.9269 |
+| linear | 2367 | 7 | 2360 | 0.2957% | 0.1757 |
+| ecdf | 2367 | 51 | 2316 | 2.1546% | 0.4286 |

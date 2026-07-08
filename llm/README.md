@@ -22,17 +22,17 @@ The project is inspired by meta-labeling literature, where a secondary model is 
 
 ## Asset Universe
 
-Use a generic global multi-asset ETF universe of at least 7 assets:
+Use a generic global multi-asset index sleeve universe of at least 7 assets:
 
 | Ticker | Asset Class | Economic Role |
 |---|---|---|
-| SPY | U.S. equities | U.S. growth / equity benchmark |
-| TLT | Long-term U.S. Treasuries | Duration / defensive interest-rate exposure |
-| GLD | Gold | Inflation hedge / safe-haven commodity |
-| VEA | Developed international equities | Non-U.S. developed market exposure |
-| VWO | Emerging market equities | Emerging market growth and risk premia |
-| HYG | High-yield corporate bonds | Credit risk exposure |
-| VNQ | Real estate / REITs | Real estate and rate-sensitive income exposure |
+| SP500 | U.S. equities | U.S. growth / equity benchmark |
+| UST_7_10 | Long-term U.S. Treasuries | Duration / defensive interest-rate exposure |
+| GOLD_SPOT | Gold | Inflation hedge / safe-haven commodity |
+| MSCI_EAFE | Developed international equities | Non-U.S. developed market exposure |
+| MSCI_EM | Emerging market equities | Emerging market growth and risk premia |
+| US_HIGH_YIELD | High-yield corporate bonds | Credit risk exposure |
+| US_REIT | Real estate / REITs | Real estate and rate-sensitive income exposure |
 
 Preferred frequency: **weekly**.
 
@@ -47,7 +47,7 @@ Default split:
 
 1. **Equal-weight benchmark:** 1/7 in each asset, rebalanced weekly or monthly.
 2. **60/40 benchmark:** 60% equities and 40% bonds.
-   - Default implementation: equities = `SPY, VEA, VWO, VNQ`; bonds = `TLT, HYG`.
+   - Default implementation: equities = `SP500, MSCI_EAFE, MSCI_EM, US_REIT`; bonds = `UST_7_10, US_HIGH_YIELD`.
    - Gold is excluded from the strict 60/40 benchmark, but an optional 55/35/10 stock/bond/gold benchmark can be added.
 
 ---

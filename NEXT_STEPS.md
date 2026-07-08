@@ -1,6 +1,8 @@
 # Next Steps and Review Notes
 
-**Branch vs `main`:** [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md) · [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
+**Status:** August 2026 — index-first universe active (`SP500`, …). See [DATA_SOURCES_AND_ETL.md](DATA_SOURCES_AND_ETL.md).
+
+**Branch history:** [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md) · [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md)
 
 ## Walk-forward ECDF validation (completed)
 
@@ -30,6 +32,12 @@ Reports: [ir_attribution_analysis.md](reports/ir_attribution_analysis.md) · [ir
 | Holdout gate pass | `vol_bump_0.55_1.15` IR **0.08**, Sharpe **0.96**, return **8.1%** |
 | Walk-forward | Winner **rejected** — IR positive in only **2/6** folds |
 | **Config** | **Unchanged** — keep ECDF baseline |
+
+## Index-first data (completed Aug 2026)
+
+- Panel sleeve IDs: `SP500`, `MSCI_EAFE`, `MSCI_EM`, `UST_7_10`, `US_HIGH_YIELD`, `GOLD_SPOT`, `US_REIT`
+- `IndexProvider` in `src/data_providers.py`; cache under `data/raw/index/`
+- Full balanced panel effective start ~**2011** (US_REIT FRED history)
 
 ## Recommended next work
 

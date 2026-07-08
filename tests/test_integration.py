@@ -34,16 +34,25 @@ def test_full_pipeline_smoke(tmp_path):
     }
     cfg_path.write_text(yaml.dump(base_cfg))
 
-    # Reuse cached market/macro parquet from repo data/ if available
+    # Reuse cached market/macro parquet only when tickers match config (index sleeves)
+    import pandas as pd
+
     src_processed = root / "data" / "processed"
     dst_processed = tmp_path / "data" / "processed"
     dst_processed.mkdir(parents=True, exist_ok=True)
-    for name in ("market_weekly.parquet", "macro_weekly.parquet"):
-        src = src_processed / name
-        if src.exists():
-            shutil.copy(src, dst_processed / name)
+    expected_tickers = set(base_cfg["assets"]["tickers"]) | {base_cfg["assets"]["vix_ticker"]}
+    refresh_data = True
+    market_src = src_processed / "market_weekly.parquet"
+    if market_src.exists():
+        cached_tickers = set(pd.read_parquet(market_src)["ticker"].unique())
+        if expected_tickers.issubset(cached_tickers):
+            refresh_data = False
+            for name in ("market_weekly.parquet", "macro_weekly.parquet"):
+                src = src_processed / name
+                if src.exists():
+                    shutil.copy(src, dst_processed / name)
 
-    summary = run_pipeline(str(cfg_path), project_root=tmp_path)
+    summary = run_pipeline(str(cfg_path), project_root=tmp_path, refresh_data=refresh_data)
     run_dir = summary.run_dir
     assert run_dir.exists()
     assert (run_dir / "config_snapshot.yaml").exists()

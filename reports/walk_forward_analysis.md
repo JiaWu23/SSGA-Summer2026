@@ -13,54 +13,54 @@ This report answers whether **M1+M2+M3 ECDF** improves risk-adjusted returns vs 
 
 ## Executive verdict
 
-**ECDF edge is positive in 4/6 folds with mean +0.177 — stable under a majority-fold criterion.**
+**ECDF edge is not stable: mean -0.190, positive in only 1/6 folds.**
 
 | Metric | Value |
 | --- | --- |
 | Folds completed | 6 |
-| Stable (majority + positive mean edge)? | **Yes** |
-| Mean ECDF Sharpe edge vs M1 | 0.1774 |
-| Median edge | 0.1111 |
-| Folds with positive edge | 4 / 6 (67%) |
-| Mean ECDF / M1 / EW Sharpe | 0.9289 / 0.7515 / 0.7278 |
-| ECDF beats equal-weight (folds) | 3 / 6 |
-| Mean M2 AUC (test, across folds) | 0.5482 |
+| Stable (majority + positive mean edge)? | **No** |
+| Mean ECDF Sharpe edge vs M1 | -0.1898 |
+| Median edge | -0.3831 |
+| Folds with positive edge | 1 / 6 (17%) |
+| Mean ECDF / M1 / EW Sharpe | 0.5187 / 0.7085 / 0.7084 |
+| ECDF beats equal-weight (folds) | 1 / 6 |
+| Mean M2 AUC (test, across folds) | 0.4864 |
 
 ## Pre-2021 vs production window
 
 | Segment | Folds | Mean ECDF edge vs M1 | Positive folds |
 | --- | ---: | ---: | ---: |
-| Pre-`2021-01-01` test blocks | 3 | 0.2431 | 2 |
-| `2021-01-01`+ test blocks | 3 | 0.1117 | 2 |
+| Pre-`2021-01-01` test blocks | 3 | -0.4057 | 0 |
+| `2021-01-01`+ test blocks | 3 | 0.0261 | 1 |
 
 ## Key questions
 
 ### 1. Is ECDF Sharpe edge vs M1 stable across folds?
 
-**Yes (under majority criterion):** mean edge 0.1774, positive in 4/6 folds.
+**No / mixed:** mean edge -0.1898, positive in only 1/6 folds.
 
 ### 2. Is the 2021+ production result representative?
 
-**Broadly yes, not 2021-specific.** Both eras show positive mean ECDF edge; pre-2021 mean edge (0.243) is actually **higher** than production-era folds (0.112), so the single 2021+ headline is not an isolated outlier.
+**Mixed.** Compare the fold table below — some eras favor ECDF sizing, others favor M1-only levels.
 
 ### 3. Does ECDF add value beyond equal-weight?
 
-ECDF Sharpe exceeds equal-weight in **3** of **6** folds (mean ECDF Sharpe 0.9289 vs EW 0.7278).
+ECDF Sharpe exceeds equal-weight in **1** of **6** folds (mean ECDF Sharpe 0.5187 vs EW 0.7084).
 
 ### 4. What is M2 doing across folds?
 
-Mean test AUC **0.5482** — ranking remains modest; ECDF edge is driven by **vol/drawdown shaping** from `p_success`, not binary filtering.
+Mean test AUC **0.4864** — ranking remains modest; ECDF edge is driven by **vol/drawdown shaping** from `p_success`, not binary filtering.
 
 ## Fold-level results
 
-| fold_id | train_start | train_end | test_start | test_end | test_weeks | m1_only_sharpe | m1_only_ann_return | ecdf_sharpe | ecdf_ann_return | ecdf_sharpe_edge_vs_m1 | ecdf_return_edge_vs_m1 | equal_weight_sharpe | m2_auc | m2_auc_pr | m2_n_trades |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2006-01-01 | 2014-12-31 | 2015-01-01 | 2016-12-31 | 105 | -0.0094 | -0.0892% | -0.1971 | -1.3781% | -0.1876 | -1.2889% | 0.2059 | 0.4706 | 0.4598707984024878 | 315 |
-| 2 | 2006-01-01 | 2016-12-31 | 2017-01-01 | 2018-12-31 | 104 | 1.0157 | 8.5207% | 1.7423 | 7.0038% | 0.7267 | -1.5169% | 0.5454 | 0.6306 | 0.6574411889849903 | 312 |
-| 3 | 2006-01-01 | 2018-12-31 | 2019-01-01 | 2020-12-31 | 104 | 0.8053 | 9.5127% | 0.9956 | 6.8752% | 0.1903 | -2.6375% | 1.0119 | 0.5679 | 0.6523833876271765 | 312 |
-| 4 | 2006-01-01 | 2020-12-31 | 2021-01-01 | 2022-12-31 | 105 | -0.0224 | -0.2515% | 0.4018 | 2.7850% | 0.4242 | 3.0365% | -0.3229 | 0.5061 | 0.585656004393908 | 315 |
-| 5 | 2006-01-01 | 2022-12-31 | 2023-01-01 | 2024-12-31 | 104 | 1.1563 | 10.2687% | 1.1882 | 7.0894% | 0.0319 | -3.1794% | 1.1535 | 0.6129 | 0.7016711786363587 | 312 |
-| 6 | 2006-01-01 | 2024-12-31 | 2025-01-01 | 2026-06-12 | 76 | 1.5634 | 18.8077% | 1.4424 | 12.7416% | -0.1209 | -6.0661% | 1.7730 | 0.5011 | 0.6572920928238803 | 228 |
+| fold_id | train_start | train_end | test_start | test_end | test_weeks | m1_only_sharpe | m1_only_ann_return | ecdf_sharpe | ecdf_ann_return | ecdf_sharpe_edge_vs_m1 | ecdf_return_edge_vs_m1 | equal_weight_sharpe | m1_ir | ecdf_ir | ir_edge_vs_ew | m2_auc | m2_auc_pr | m2_n_trades |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2006-01-01 | 2014-12-31 | 2015-01-01 | 2016-12-31 | 105 | -0.1285 | -1.0150% | -0.5124 | -2.3030% | -0.3839 | -1.2880% | 0.0996 | -0.39060885532756784 | -0.5257141908472133 | -0.5257141908472133 | 0.4636 | 0.47169860418726905 | 315 |
+| 2 | 2006-01-01 | 2016-12-31 | 2017-01-01 | 2018-12-31 | 104 | 0.9473 | 7.9767% | 0.2507 | 1.1642% | -0.6966 | -6.8125% | 0.5140 | 0.9009464574584505 | -0.5754901022661866 | -0.5754901022661866 | 0.4114 | 0.5486849104711295 | 312 |
+| 3 | 2006-01-01 | 2018-12-31 | 2019-01-01 | 2020-12-31 | 104 | 0.5695 | 6.5965% | 0.4329 | 4.0281% | -0.1366 | -2.5684% | 0.8547 | -0.7643713943700546 | -0.9837458961189556 | -0.9837458961189556 | 0.4982 | 0.666760410786915 | 312 |
+| 4 | 2006-01-01 | 2020-12-31 | 2021-01-01 | 2022-12-31 | 105 | -0.0569 | -0.5679% | 0.8621 | 3.1047% | 0.9190 | 3.6726% | -0.2795 | 0.431591604309763 | 0.5526835711766697 | 0.5526835711766697 | 0.5804 | 0.6402936075840315 | 315 |
+| 5 | 2006-01-01 | 2022-12-31 | 2023-01-01 | 2024-12-31 | 104 | 1.0932 | 9.7612% | 0.6346 | 3.0389% | -0.4586 | -6.7223% | 1.1727 | -0.4132921203939574 | -1.1444725123832062 | -1.1444725123832062 | 0.4292 | 0.5927951847204773 | 312 |
+| 6 | 2006-01-01 | 2024-12-31 | 2025-01-01 | 2026-07-10 | 80 | 1.8267 | 21.5409% | 1.4444 | 13.1697% | -0.3823 | -8.3712% | 1.8891 | 0.4996151931784539 | -1.076273669633716 | -1.076273669633716 | 0.5358 | 0.6519009203096195 | 240 |
 
 ![Walk-forward Sharpe by fold](../data/backtests/long_only/figures/walk_forward_sharpe.png)
 
@@ -70,18 +70,18 @@ Mean test AUC **0.5482** — ranking remains modest; ECDF edge is driven by **vo
 
 | transaction_cost_bps | strategy | annualized_return | sharpe | max_drawdown | hit_rate | n_weeks | ecdf_sharpe_edge_vs_m1 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.0 | equal_weight_1_7 | 0.0734 | 0.6853 | -0.2390 | 0.5439 | 285 | — |
-| 0.0 | m1_only | 0.0869 | 0.8139 | -0.2078 | 0.5965 | 285 | — |
-| 0.0 | m1_m2_m3_ecdf | 0.0746 | 1.0242 | -0.1100 | 0.5930 | 285 | 0.2103 |
-| 5.0 | equal_weight_1_7 | 0.0734 | 0.6853 | -0.2390 | 0.5439 | 285 | — |
-| 5.0 | m1_only | 0.0840 | 0.7869 | -0.2100 | 0.5965 | 285 | — |
-| 5.0 | m1_m2_m3_ecdf | 0.0702 | 0.9641 | -0.1133 | 0.5930 | 285 | 0.1772 |
-| 10.0 | equal_weight_1_7 | 0.0734 | 0.6853 | -0.2390 | 0.5439 | 285 | — |
-| 10.0 | m1_only | 0.0812 | 0.7600 | -0.2130 | 0.5895 | 285 | — |
-| 10.0 | m1_m2_m3_ecdf | 0.0658 | 0.9042 | -0.1166 | 0.5895 | 285 | 0.1442 |
-| 25.0 | equal_weight_1_7 | 0.0734 | 0.6853 | -0.2390 | 0.5439 | 285 | — |
-| 25.0 | m1_only | 0.0726 | 0.6794 | -0.2222 | 0.5825 | 285 | — |
-| 25.0 | m1_m2_m3_ecdf | 0.0528 | 0.7255 | -0.1281 | 0.5754 | 285 | 0.0462 |
+| 0.0 | equal_weight_1_7 | 0.0781 | 0.7445 | -0.2234 | 0.5640 | 289 | — |
+| 0.0 | m1_only | 0.0921 | 0.9045 | -0.1998 | 0.6021 | 289 | — |
+| 0.0 | m1_m2_m3_ecdf | 0.0484 | 0.9637 | -0.0749 | 0.5606 | 289 | 0.0592 |
+| 5.0 | equal_weight_1_7 | 0.0781 | 0.7445 | -0.2234 | 0.5640 | 289 | — |
+| 5.0 | m1_only | 0.0892 | 0.8754 | -0.2017 | 0.5986 | 289 | — |
+| 5.0 | m1_m2_m3_ecdf | 0.0458 | 0.9137 | -0.0751 | 0.5502 | 289 | 0.0383 |
+| 10.0 | equal_weight_1_7 | 0.0781 | 0.7445 | -0.2234 | 0.5640 | 289 | — |
+| 10.0 | m1_only | 0.0863 | 0.8464 | -0.2035 | 0.5917 | 289 | — |
+| 10.0 | m1_m2_m3_ecdf | 0.0433 | 0.8638 | -0.0754 | 0.5398 | 289 | 0.0174 |
+| 25.0 | equal_weight_1_7 | 0.0781 | 0.7445 | -0.2234 | 0.5640 | 289 | — |
+| 25.0 | m1_only | 0.0777 | 0.7597 | -0.2090 | 0.5848 | 289 | — |
+| 25.0 | m1_m2_m3_ecdf | 0.0358 | 0.7142 | -0.0761 | 0.5190 | 289 | -0.0455 |
 
 ## Implications
 

@@ -1,6 +1,6 @@
 # Project Summary — Multi-Asset Meta-Labeling Pipeline
 
-This branch contains a research-grade Python pipeline for a weekly, seven-ETF multi-asset allocation strategy. It follows the **Joubert (2022) three-layer** meta-labeling design:
+This branch contains a research-grade Python pipeline for a weekly, seven-sleeve multi-asset allocation strategy. It follows the **Joubert (2022) three-layer** meta-labeling design:
 
 1. **M1** decides the trade side: long, short, or flat.
 2. **M2** estimates the probability that an M1 trade will be profitable (`p_success`).
@@ -11,7 +11,7 @@ The project is for **research and education only**. It is not live trading infra
 
 **Branch update vs `main`:** [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md) (executive) · [reports/branch_update_vitaly_week5.md](reports/branch_update_vitaly_week5.md) (technical)
 
-**New to finance terms?** See [TERMINOLOGY.md](TERMINOLOGY.md) — plain-language glossary for ETFs, Sharpe, ECDF, M1/M2/M3, and all report jargon.
+**New to finance terms?** See [TERMINOLOGY.md](TERMINOLOGY.md) — plain-language glossary for index sleeves, Sharpe, ECDF, M1/M2/M3, and all report jargon.
 
 ## Branch vs `main` (July 2026)
 
@@ -29,7 +29,7 @@ M1-only economics are **unchanged**; ECDF improves because richer M2 features ch
 
 ## Current State
 
-The current best production-like interpretation is the **long-only** sleeve. Long/short is still run for research comparison, but shorts have generally hurt results in this ETF universe. The headline metrics below are **full sample (train + test)** unless explicitly labeled otherwise.
+The current best production-like interpretation is the **long-only** sleeve. Long/short is still run for research comparison, but shorts have generally hurt results in this index sleeve universe. The headline metrics below are **full sample (train + test)** unless explicitly labeled otherwise.
 
 | Strategy | Ann. Return | Sharpe | Max Drawdown | Interpretation |
 | --- | ---: | ---: | ---: | --- |
@@ -49,7 +49,7 @@ The generated final report separates **full-sample** and **test-period** portfol
 
 ```mermaid
 flowchart LR
-  dataLayer["ETF prices, VIX, FRED macro"]
+  dataLayer["Index sleeves, VIX, FRED macro"]
   features["No-lookahead features"]
   m1["M1 side model"]
   m2["M2 meta-label model"]
@@ -67,15 +67,15 @@ flowchart LR
 
 ### Data
 
-- Tradable ETFs: `SPY`, `TLT`, `GLD`, `VEA`, `VWO`, `HYG`, `VNQ`
+- Index sleeves: `SP500`, `MSCI_EAFE`, `MSCI_EM`, `UST_7_10`, `US_HIGH_YIELD`, `GOLD_SPOT`, `US_REIT`
 - Risk/macro inputs: VIX and FRED series (`CPIAUCSL`, `UNRATE`, `INDPRO`, `FEDFUNDS`, `DGS10`, `T10Y2Y`, `BAA10Y`)
 - Frequency: weekly Friday close
-- Default full-universe effective start: around 2007 because `VEA` and `HYG` are the youngest ETFs
+- Default full-universe effective start: around 2011 when `US_REIT` FRED index history begins
 - Cache behavior: if requested `data_start` materially predates cached data, the pipeline refreshes automatically
 
 ### M1
 
-M1 is the primary side model. It scores each ETF each week using:
+M1 is the primary side model. It scores each index sleeve each week using:
 
 - Momentum and relative momentum
 - Trend
@@ -91,7 +91,7 @@ Current default M1 behavior:
 - `conviction_sizing: false`
 - `portfolio.vol_target_ann: 0.12`
 
-The important practical change is that M1 no longer tries to be active on every ETF. It selects the top-ranked names each week and applies a volatility budget. Disabling M1 conviction down-scaling improved return materially because the score already acts as a selector; further scaling was over-suppressing selected trades.
+The important practical change is that M1 no longer tries to be active on every sleeve. It selects the top-ranked names each week and applies a volatility budget. Disabling M1 conviction down-scaling improved return materially because the score already acts as a selector; further scaling was over-suppressing selected trades.
 
 Component scores (`momentum_score`, `trend_score`, etc.) are now persisted for factor-level diagnostics — see [reports/m1_factor_analysis.md](reports/m1_factor_analysis.md).
 
@@ -128,7 +128,7 @@ See [reports/m3_allocation_analysis.md](reports/m3_allocation_analysis.md). See 
 
 ### 1. Long-only vs long/short
 
-The pipeline always runs both modes. The consistent insight is that **long-only is superior** for this ETF sample. Long/short adds activity, but short timing is weak in an upward-drifting multi-asset ETF universe.
+The pipeline always runs both modes. The consistent insight is that **long-only is superior** for this index sleeve sample. Long/short adds activity, but short timing is weak in an upward-drifting multi-asset index sleeve universe.
 
 Current long/short M1-only return is much lower than long-only, even though drawdown can be lower. Treat long/short as a diagnostic experiment, not the main investment story.
 
@@ -137,7 +137,7 @@ Current long/short M1-only return is much lower than long-only, even though draw
 Earlier M1 logic used absolute score thresholds. This was conservative and left too much capital in cash. The branch now defaults to a weekly top-K cross-sectional allocator:
 
 ```text
-Each week, rank ETFs by M1 score and allocate to the top 3 names.
+Each week, rank sleeves by M1 score and allocate to the top 3 names.
 ```
 
 Insight: top-K better matches the problem. In a seven-asset sleeve, relative ranking is more useful than asking whether each score clears a fixed absolute level.
@@ -200,7 +200,7 @@ M3 should be judged by whether it improves the return/drawdown tradeoff of M1:
 
 For presentations, lead with:
 
-> M1 selects ~3 ETFs per week. M2 assigns P(success) with ~59% base rate. M3 ECDF lowers volatility and drawdown at the cost of some return. Binary M3 at T=0.55 approves almost all trades — so it looks like M1-only by design.
+> M1 selects ~3 sleeves per week. M2 assigns P(success) with ~59% base rate. M3 ECDF lowers volatility and drawdown at the cost of some return. Binary M3 at T=0.55 approves almost all trades — so it looks like M1-only by design.
 
 ## Important Files
 

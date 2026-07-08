@@ -60,17 +60,19 @@ For factor research, candidate signals should be selected based on:
 
 ## Asset Universe
 
-Use these seven ETFs as a generic multi-asset testing universe:
+Use these seven index sleeves as a generic multi-asset testing universe:
 
 | Ticker | Asset Class | Role |
 |---|---|---|
-| SPY | U.S. equities | U.S. growth and equity beta |
-| TLT | Long-term U.S. Treasuries | Duration and defensive exposure |
-| GLD | Gold | Inflation hedge and safe-haven commodity |
-| VEA | Developed international equities | Geographic diversification |
-| VWO | Emerging market equities | Emerging market growth/risk premia |
-| HYG | High-yield corporate bonds | Credit risk exposure |
-| VNQ | Real estate / REITs | Real estate and rate sensitivity |
+| Sleeve ID | Asset class | Role |
+| --- | --- | --- |
+| SP500 | U.S. equities | U.S. growth and equity beta |
+| UST_7_10 | U.S. Treasuries 7-10Y | Duration and defensive exposure |
+| GOLD_SPOT | Gold | Inflation / crisis hedge |
+| MSCI_EAFE | Developed international equities | Geographic diversification |
+| MSCI_EM | Emerging market equities | EM growth/risk premia |
+| US_HIGH_YIELD | High yield credit | Credit risk premium |
+| US_REIT | Real estate / REITs | Real estate and rate sensitivity |
 
 ---
 
@@ -82,7 +84,7 @@ Use these seven ETFs as a generic multi-asset testing universe:
 
 ### Open-Source Fallback
 
-- ETF prices: yfinance.
+- index sleeves: IndexProvider (Yahoo/FRED).
 - Macro data: FRED through pandas-datareader.
 - VIX: Yahoo Finance ticker `^VIX`, if available.
 
@@ -176,7 +178,7 @@ The final report should contain:
 ## Important Limitations
 
 - yfinance data is convenient but should be treated as research-grade fallback, not institutional source of truth.
-- ETF backtests can include survivorship and product-history limitations.
+- Index/proxy backtests can include survivorship and product-history limitations.
 - Macro data release lags must be handled explicitly.
 - LLM-derived features can be unstable and should be cached, audited, and compared against non-LLM baselines.
 - Backtest performance is not evidence of future performance.

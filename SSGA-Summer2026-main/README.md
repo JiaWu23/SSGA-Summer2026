@@ -6,7 +6,11 @@ Research and educational use only — not investment advice.
 ## Overview
 
 The pipeline allocates across a seven-sleeve global asset universe and separates the
-allocation decision into two stages plus a portfolio layer:
+allocation decision into two stages plus a portfolio layer.
+
+**Root repo (Aug 2026):** Active development uses index sleeve IDs (`SP500`, `MSCI_EAFE`, …) in [`../config/config.yaml`](../config/config.yaml). This subfolder keeps legacy ticker keys (`SPY`, `VEA`, …) with `use_index_signal: true`.
+
+See mapping: [`DATA_SOURCES.md`](DATA_SOURCES.md) · [`../DATA_SOURCES_AND_ETL.md`](../DATA_SOURCES_AND_ETL.md)
 
 - **M1 — static directional model.** A simple, linear, rule-based signal that ranks assets each week using fixed-weight price factors only. No learning, no regime switching, no dynamic adjustment. Deliberately kept lean so M2 has meaningful signal to evalute
 - **M2 — dynamic meta-label.** Asks "given the current market regime, how
