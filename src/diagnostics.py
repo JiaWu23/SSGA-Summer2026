@@ -471,9 +471,28 @@ def m2_feature_importance(m2_model: object, panel: pd.DataFrame, cfg: PipelineCo
         return pd.DataFrame()
 
     mean_coef = np.mean(coefs, axis=0)
+
+    feature_names = list(resolved.feature_cols)
+
+    if len(feature_names) != len(mean_coef):
+        logger.warning(
+            "M2 feature importance length mismatch: %s feature names vs %s coefficients. "
+            "Using aligned/generated feature names for diagnostics.",
+            len(feature_names),
+            len(mean_coef),
+        )
+
+        if len(feature_names) > len(mean_coef):
+            feature_names = feature_names[: len(mean_coef)]
+        else:
+            feature_names = feature_names + [
+                f"derived_feature_{i}"
+                for i in range(len(feature_names), len(mean_coef))
+            ]
+
     importance = pd.DataFrame(
         {
-            "feature": resolved.feature_cols,
+            "feature": feature_names,
             "coefficient": mean_coef,
             "abs_coefficient": np.abs(mean_coef),
         }
@@ -773,7 +792,7 @@ def _build_executive_summary(metrics_table: pd.DataFrame, m2_metrics: dict[str, 
 
     lines = [
         "This report compares a **meta-labeling pipeline** against standard benchmarks on seven global ETFs "
-        "(SPY, TLT, GLD, VEA, VWO, HYG, VNQ). M1 proposes long/short/flat signals; M2 estimates trade quality "
+        "(SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT). M1 proposes long/short/flat signals; M2 estimates trade quality "
         "and scales position size.",
         "",
         "**Research use only — not investment advice.**",
@@ -1170,7 +1189,7 @@ def generate_final_report(
         f"| Effective end | {effective_end or 'N/A'} |",
         f"| Train period | 2006-01-01 to 2020-12-31 |",
         f"| Test period (M2 evaluation) | 2021-01-01 onward |",
-        f"| Assets | SPY, TLT, GLD, VEA, VWO, HYG, VNQ |",
+        f"| Assets | SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT |",
         "",
         "## Strategy Comparison",
         "",
@@ -1707,9 +1726,9 @@ def build_performance_parameters_section(cfg: PipelineConfig) -> list[str]:
         f"| `split.require_full_universe` | {cfg.split.require_full_universe} | If true, only weeks with all 7 ETFs (~2007+); if false, partial groups allowed |",
         "",
         "**Can train_start be before 2006?** Yes in config/CLI, but with `require_full_universe: true` "
-        "(default) the **effective** sample usually starts ~**2007-07** when VEA and HYG (youngest ETFs) "
+        "(default) the **effective** sample starts when all seven index/proxy sleeves have sufficient public data coverage "
         "both exist. Dates before that are dropped. Set `require_full_universe: false` or `--partial-universe` "
-        "to train on subsets (e.g. SPY/TLT/GLD/VNQ/VWO from 2005).",
+        "to train on subsets when earlier public proxy coverage is incomplete.",
         "",
         "**CLI overrides** (ISO dates, applied after loading config):",
         "",
@@ -1719,7 +1738,7 @@ def build_performance_parameters_section(cfg: PipelineConfig) -> list[str]:
         "python -m src.run_pipeline --train-end 2015-12-31 --test-start 2016-01-01",
         "python -m src.run_pipeline --train-start 2008-01-01 --train-end 2012-12-31 --test-start 2013-01-01",
         "",
-        "# Earlier history: partial universe before all seven ETFs existed",
+        "# Earlier history: partial universe before all seven index/proxy sleeves have sufficient public data coverageed",
         "python -m src.run_pipeline --data-start 2004-01-01 --train-start 2005-01-01 --train-end 2006-12-31 "
         "--test-start 2007-01-01 --partial-universe --refresh-data",
         "```",
@@ -2354,12 +2373,16 @@ def generate_dual_mode_report(
     mode_comparison_dir.mkdir(parents=True, exist_ok=True)
 
     comparison_chart = f"mode_comparison/{save_m1_mode_comparison_chart(mode_results, mode_comparison_dir)}"
-    m1_m2_comparison_chart = (
-        f"mode_comparison/{save_m1_signal_m2_mode_comparison_chart(
-            [(m.mode_name, m.m1_signal_analysis) for m in mode_results if getattr(m, 'm1_signal_analysis', None)],
-            mode_comparison_dir / 'm2_m1_signal_comparison.png',
-        )}"
-    )
+    m1_m2_comparison_file = save_m1_signal_m2_mode_comparison_chart(
+    [
+        (m.mode_name, m.m1_signal_analysis)
+        for m in mode_results
+        if getattr(m, "m1_signal_analysis", None)
+    ],
+    mode_comparison_dir / "m2_m1_signal_comparison.png",
+)
+
+    m1_m2_comparison_chart = f"mode_comparison/{m1_m2_comparison_file}"
 
     import shutil
 
@@ -2416,7 +2439,7 @@ def generate_dual_mode_report(
             [
                 f"| Train period | (see config) |",
                 f"| Test period (M2 evaluation) | (see config) |",
-                f"| Assets | SPY, TLT, GLD, VEA, VWO, HYG, VNQ |",
+                f"| Assets | SP500, MSCI_EAFE, MSCI_EM, UST_7_10, US_HIGH_YIELD, GOLD_SPOT, US_REIT |",
                 "",
             ]
         )

@@ -52,9 +52,15 @@ def _drawdown_feature(prices: pd.DataFrame, window: int = 26) -> pd.DataFrame:
 
 
 def _corr_to_spy(returns: pd.DataFrame, window: int = 26) -> pd.DataFrame:
-    if "SPY" not in returns.columns:
-        return pd.DataFrame(index=returns.index, columns=returns.columns, dtype=float)
-    spy = returns["SPY"]
+    market_col = "SP500"
+
+    if market_col not in returns.columns:
+        raise ValueError(
+            f"{market_col} missing from returns columns. Available columns: {list(returns.columns)}"
+        )
+
+    spy = returns[market_col]
+    
     corrs = {}
     for col in returns.columns:
         corrs[col] = returns[col].rolling(window).corr(spy).shift(1)
@@ -129,7 +135,7 @@ def _wide_to_long(feature_dict: dict[str, pd.DataFrame], dates: pd.DatetimeIndex
     rows = []
     for name, wide in feature_dict.items():
         if isinstance(wide, pd.Series):
-            wide = wide.to_frame("SPY") if wide.name is None else wide.to_frame(wide.name)
+            wide = wide.to_frame("SP500") if wide.name is None else wide.to_frame(wide.name)
         long = wide.stack().reset_index()
         long.columns = ["date", "ticker", name]
         rows.append(long)
