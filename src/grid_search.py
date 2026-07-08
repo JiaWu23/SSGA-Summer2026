@@ -25,7 +25,7 @@ from src.run_pipeline import run_pipeline
 
 logger = logging.getLogger(__name__)
 
-STRATEGIES = ("m1_only", "m1_m2_linear", "m1_m2_ecdf")
+STRATEGIES = ("m1_only", "m1_m2_m3_linear", "m1_m2_m3_ecdf")
 MODES = ("long_only", "long_short")
 BACKTEST_ARTIFACTS = (
     "metrics_table.csv",
@@ -196,8 +196,14 @@ def _collect_strategy_metrics(
             if mk in m2_metrics:
                 out[f"{mode}_m2_{mk}"] = m2_metrics[mk]
 
-    out["rank_score"] = out.get("long_only_m1_m2_linear_test_sharpe", float("nan"))
-    out["rank_score_full"] = out.get("long_only_m1_m2_linear_sharpe", float("nan"))
+    out["rank_score"] = out.get(
+        "long_only_m1_m2_m3_linear_test_sharpe",
+        out.get("long_only_m1_m2_linear_test_sharpe", float("nan")),
+    )
+    out["rank_score_full"] = out.get(
+        "long_only_m1_m2_m3_linear_sharpe",
+        out.get("long_only_m1_m2_linear_sharpe", float("nan")),
+    )
     return out
 
 

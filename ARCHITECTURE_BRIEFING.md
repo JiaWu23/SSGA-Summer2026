@@ -26,14 +26,14 @@ flowchart TB
     FE[Momentum, trend, vol, macro lags]
   end
 
-  subgraph models [Two-Stage Models]
+  subgraph models [M1 / M2 / M3 Stack]
     M1[M1: side signal -1, 0, +1]
     M2[M2: P trade is profitable]
+    M3[M3: bet fraction 0 to 1]
   end
 
-  subgraph portfolio [Portfolio]
-    SIZE[Position sizing]
-    RISK[Risk constraints]
+  subgraph portfolio [Portfolio Layer]
+    RISK[Risk constraints and vol target]
   end
 
   subgraph eval [Evaluation]
@@ -47,8 +47,8 @@ flowchart TB
   VIX --> FE
   FE --> M1
   M1 --> M2
-  M2 --> SIZE
-  SIZE --> RISK
+  M2 --> M3
+  M3 --> RISK
   RISK --> BT
   BT --> BENCH
   BT --> RPT
@@ -64,11 +64,12 @@ flowchart TB
 | Layer | Question it answers | Output |
 |--------|---------------------|--------|
 | **M1** | Which side? | `+1` long, `-1` short, `0` flat per asset-week |
-| **M2** | Is this M1 trade likely to pay? | `P(success)` — meta-label |
-| **Sizing** | How much capital? | Scale weight by probability; apply caps |
+| **M2** | Is this M1 trade likely to pay? | `P(success)` — meta-label probability |
+| **M3** | How much to bet? | `M3_size` ∈ [0, 1] — bet fraction before portfolio caps |
+| **Portfolio** | Risk budget enforcement | Final weights after caps and vol target |
 
-**Why split M1 and M2?**  
-In production quant shops, combining “direction” and “size” in one model often blurs signal quality. Meta-labeling lets M1 cast a wide net (opportunities) while M2 focuses on **false-positive control** and **capital efficiency**—a familiar split from systematic PM literature (e.g. López de Prado).
+**Why split M1, M2, and M3?**  
+Per Joubert (2022) and López de Prado, side (M1), trade quality probability (M2), and bet sizing (M3) are separate decisions. M2 is a classifier; M3 is a deterministic sizing rule (threshold, linear, or ECDF)—not another classifier.
 
 ---
 
@@ -168,11 +169,13 @@ The latest branch state should be read as a **long-only tactical allocator** wit
 | **M1 only, long-only** | **7.32%** | **0.70** | **-21.00%** | Main return-oriented model; nearly benchmark return with much lower drawdown |
 | M1 + M2 binary | 7.16% | 0.69 | -23.48% | Similar to M1; M2 threshold does not add much here |
 | M1 + M2 linear | 1.80% | 0.84 | -5.44% | Very defensive; useful as a drawdown-control example, not main return sleeve |
-| M1 + M2 ECDF | 6.51% | 0.91 | -18.80% | Best risk-adjusted balance |
+| M1 + M2 + M3 ECDF | 6.54% | 0.96 | -16.26% | Best risk-adjusted balance; **+0.113 test Sharpe vs `main` ECDF** |
 
 Reviewer caveat: equal-weight is shown with 0 bps transaction costs, while strategy variants pay the configured 5 bps turnover cost. M1 average gross exposure is about 81%, so the result is best framed as similar return with materially lower drawdown and lower deployed risk, not as strong positive excess return.
 
-The generated final report now includes separate portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% annualized return / 0.79 Sharpe versus equal-weight at 7.34% / 0.69; M1+M2 ECDF reports 6.93% / 0.85.
+The generated final report includes separate portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% / 0.79 Sharpe vs equal-weight 7.34% / 0.69; M1+M2+M3 ECDF reports 7.02% / **0.96** Sharpe (vs **0.85** on `main`). Transaction-cost sensitivity: ECDF Sharpe edge vs M1 remains **+0.046** at 25 bps ([evaluation_analysis.md](reports/evaluation_analysis.md)).
+
+**Branch vs `main`:** six companion reports, formal M3 layer, M2 AUC +0.016, 61 tests (was 48). Details: [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md).
 
 ### How to make sense of M1 + M2
 
@@ -252,7 +255,7 @@ Full table: `runs/grid_search/20260610_234123/results.csv` · Top 10: `summary.m
 2. **Approach:** Meta-labeling — M1 proposes, M2 filters, sizing scales.
 3. **Universe & frequency:** Seven liquid ETFs, weekly.
 4. **Edge hypothesis:** Cross-sectional momentum/trend/macro ranks select the better ETFs; M2 improves risk allocation rather than raw alpha.
-5. **Evidence:** Long-only M1 now nearly matches equal-weight return (7.32% vs 7.36%) with higher Sharpe (0.70 vs 0.57) and much lower drawdown (-21% vs -39%). M1+M2 ECDF gives the best risk-adjusted profile (Sharpe ~0.91).
+5. **Evidence:** Long-only M1 nearly matches equal-weight return (7.32% vs 7.36%) with higher Sharpe (0.70 vs 0.57) and much lower drawdown (-21% vs -39%). M1+M2+M3 ECDF gives the best risk-adjusted profile (Sharpe ~0.96 test, +0.113 vs `main` ECDF).
 6. **Limitations:** Research stack, simplified costs, no live OMS, no capacity/impact modeling, sample starts ~2007 for full seven-ETF universe.
 
 ---

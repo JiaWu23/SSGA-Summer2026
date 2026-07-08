@@ -1,0 +1,39 @@
+{
+  "verdict": "reject",
+  "winner": null,
+  "provisional_winner": "m1_components_rich",
+  "reason": "Holdout passed but walk-forward failed (walk-forward AUC wins 2/6 folds, need 4)",
+  "baseline": {
+    "variant": "configured",
+    "description": "Current production: 52 features with M1 meta + asset class dummies.",
+    "n_features": 52,
+    "n_train": 2103,
+    "n_test": 855,
+    "train_auc": 0.6460407138373241,
+    "test_auc": 0.5890369918147695,
+    "test_f1": 0.7417218543046358,
+    "test_brier": 0.24031446492238911,
+    "ecdf_test_sharpe": 0.9641318559980515,
+    "ecdf_test_ann_return": 0.07020991066292082,
+    "ecdf_test_max_drawdown": -0.11331717685054965
+  },
+  "provisional_metrics": {
+    "variant": "m1_components_rich",
+    "description": "Configured + M1 factor CS ranks, spread, sign agreement, conviction, trend\u2212momentum.",
+    "n_features": 72,
+    "n_train": 2103,
+    "n_test": 855,
+    "train_auc": 0.6404003377873435,
+    "test_auc": 0.5942205942205943,
+    "test_f1": 0.7433628318584071,
+    "test_brier": 0.23990876904619116,
+    "ecdf_test_sharpe": 1.0489678347694114,
+    "ecdf_test_ann_return": 0.07233808569025002,
+    "ecdf_test_max_drawdown": -0.08532292914810069,
+    "gates": {
+      "auc_ok": true,
+      "sharpe_ok": true,
+      "sharpe_not_worse_than_baseline": true
+    }
+  }
+}

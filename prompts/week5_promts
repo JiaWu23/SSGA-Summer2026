@@ -1,0 +1,258 @@
+# Week 5 — User Prompts & Questions
+## Full list from this conversation window (`vitaly_week5` branch work)
+
+Collected chronologically from the session transcript. Duplicate prompts are noted where the same text was sent more than once.
+
+---
+
+### 1. M1/M2 analytics & regime insights (initial request)
+
+Read the repo and create the following changes:
+
+1. I would like to understand how every individual factor changes the perfomance of M1 model. I would also like to understand what is the correlation and covariance between one factor to another in the M1 model.
+
+2. I would like to have more insights regarding the M2 input. Specifically the evaluation metrics.
+
+3. I would like to get more data about the market and regime changes that may influence the final outcome
+
+4. I would like to understand the AUC-ROC stat better.
+
+---
+
+### 2. Implement M1/M2 Analytics plan
+
+M1/M2 Analytics and Regime Insights Plan
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 3. Implement plan (repeat)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 4. IC metrics explanation
+
+What is ic_mean	ic_std	ic_hit_rate
+
+---
+
+### 5. Short summary
+
+Write the same summary in 2 sentces
+
+---
+
+### 6. Joubert paper — M3 model role (detailed)
+
+@c:\Users\vital\Desktop\JFDS-2022-Joubert-31-44.pdf
+
+Read the paper and understand the M3 model role.
+
+One point I would like you to think more carefully about is the role of M3. Without a clearly defined M3 layer, it is difficult to fully interpret the final asset-level or portfolio-level outcome. M1 and M2 can identify and filter candidate signals, but the realized portfolio result depends on how those signals are converted into allocation weights.
+
+In particular, please clarify the meaning of a zero position in M3. In a long-only M1 setup, M1 = 0 means that no buy signal was generated. However, M3 = 0 can mean something different: M1 may have generated a buy candidate, but the final allocation was set to zero after applying M2 confidence or the position-sizing rule.
+
+So I suggest distinguishing these cases clearly:
+
+·       M1 = 0: no buy signal was generated.
+
+·       M1 = 1 and M3 = 0: a buy candidate existed, but the model decided not to allocate capital to it.
+
+·       M1 = 1 and M3 > 0: a buy candidate existed and received a positive portfolio weight.
+
+This distinction is important because M3 is not just a technical add-on. It determines how M2's probability is translated into actual investment exposure, and therefore it directly affects return, Sharpe ratio, drawdown, and other portfolio-level metrics.
+
+Also, I would be careful not to describe M3 as another classification model. In the standard meta-labeling setup, M1 is the primary signal model, M2 is the classification model that estimates the probability that M1's signal is profitable, and M3 is the position-sizing or allocation rule. In other words:
+
+M2 output = probability that the M1 signal works
+M3 output = how much to invest
+
+M3 can still be simple. For example, you could use a threshold rule: if the M2 probability is above 0.60, take a full position; otherwise, take no position. In that case, M3 may look like a binary decision rule, but conceptually it is better to describe it as a threshold-based position-sizing rule rather than a separate classification model.
+
+For the next step, I also recommend prototyping a simple M3 rule, even if M2 is not fully finalized yet. You could start with either a threshold rule or a simple probability-based sizing rule, then compare M1-only, M1+M2 filtering, and M1+M2+M3 sizing under the same evaluation framework.
+
+---
+
+### 7. Formalize M3 Bet-Sizing Layer (×2 — same prompt sent twice)
+
+Formalize M3 Bet-Sizing Layer (Joubert Framework)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 8. Implement plan (repeat)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 9. Branch comparison report for team/PMs
+
+Create me a detailed report that explains the differences between this branch after the updates and the main branch. I would like to send the report to my team members and project managers. Suggest further improvements, directions and things to do
+
+---
+
+### 10. Implement Branch Comparison Report plan
+
+Branch Comparison Report (vitaly_week5 vs main)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 11. Implement plan (repeat)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 12. M1 factor weight tuning (next steps)
+
+I would like you to continue with the next steps reccomendation. Specifically "M1 factor ablation — momentum/trend correlation 0.77; tune weights using new IC outputs"
+
+---
+
+### 13. Improve M2 ranking
+
+Improve M2 ranking — AUC 0.57 is weak; richer features or per-asset heads.
+
+---
+
+### 14. Add evaluation — walk-forward & transaction costs (×2 — same prompt sent twice)
+
+Add Evaluation
+
+Walk-forward validation across multiple test windows.
+
+Transaction-cost sensitivity on ECDF Sharpe edge.
+
+---
+
+### 15. Update all reports vs main
+
+Update all the reports to reflect this branch changes vs the main branch. Explain the improvemetns with numerical figures. Suggest further improvements
+
+---
+
+### 16. IC-proportional M1 weights research
+
+Run High-value research and improve the code.
+
+Apply IC-proportional M1 weights — backtest shows +0.008 test Sharpe; validate on walk-forward before config change. Make research and change according to the results
+
+---
+
+### 17. Full walk-forward validation
+
+Run High-value research and improve the code.
+
+Run full walk-forward with walk_forward_enabled: true — confirm ECDF edge is stable across folds (not just 2021+ window). Create a report that gives analysis and answers on that
+
+---
+
+### 18. M3 threshold sweep (×2 — same prompt sent twice)
+
+Run High-value research and improve the code.
+
+M3 threshold sweep — find binary/linear thresholds with meaningful rejection (current T=0.55 → recall ≈ 1). Run analysis and report with a compare table and show the best threshold results
+
+---
+
+### 19. Terminology file for non-finance readers
+
+Add a terminology and explanation file. Explain all the professional terms being used. I would like any software without background in finanace to understand the materials
+
+In example:
+
+"ECDF", "ECDF", "equal_weight", ...
+
+---
+
+### 20. Information Ratio improvement research
+
+Why does the Info Ratio drops when we add M2 and M3 models? Can you try to improve those, while maintaning high Ann return and Sharpe ratio? Make a research first, and change only if it really does improve the overall perf.
+
+---
+
+### 21. Implement IR Improvement Research Plan
+
+IR Improvement Research Plan
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 22. Implement plan (repeat)
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+### 23. M2 feature enrichment (M1 → M2)
+
+Try to improve the output from M1 to M2. Try many factors, such as the M1 model evaluation analysis, and other dynamic external factors. Make the work research based and explainable. In the final results explain the steps that were taken and impelement only if the Performance actually increases
+
+---
+
+### 24. Week 5 research summary report
+
+Read all the context window, my conversations with you and the work that have been done on this branch vs the main branch. Make a new summary report, name it "week5_research_summary" and put into that file all the work that have been done. Keep it short, but explain the directions, questions, areas and changes that were done
+
+---
+
+### 25. M1 ranking count (×2 — same question sent twice)
+
+How many positions were ranked during the M1 analysis
+
+---
+
+### 26. M3 zero size meaning (long-only vs long/short)
+
+What is the meaning of the M3 zero size (m3=0) in the model when short bets are disabled and when short bets are enabled
+
+---
+
+### 27. Slide source document
+
+Add your latest answer with m3=0 and all the relevant work that was made in this branch into a temporary file named "transform_to_slides". I want to put it later in Claude to generate slides out of it
+
+---
+
+### 28. This prompt (meta)
+
+Read the entire context of this window, in a new file named "week5_promts" put all the questions and prompt I asked from you so far
+
+---
+
+## Summary count
+
+| Category | Count |
+|----------|------:|
+| Unique substantive questions/requests | **22** |
+| Total user messages (incl. repeats & plan implementations) | **28** |
+| "Implement the plan" variants | **8** |
+| Exact duplicate sends | **5** (Formalize M3 ×1 extra, Add Evaluation ×1, M3 threshold ×1, M1 ranking ×1, plus repeated generic implement-plan) |
+
+---
+
+*Source: agent transcript `a8528be7-98ac-4afa-be87-a68d9c5b001f` · Branch `vitaly_week5` · July 2026*

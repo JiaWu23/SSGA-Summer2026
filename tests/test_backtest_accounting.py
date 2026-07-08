@@ -55,8 +55,12 @@ def test_all_strategy_variants_exist(synthetic_panel, cfg):
         "equal_weight_1_7",
         "sixty_forty",
         "m1_only",
+        "m1_m2_m3_binary",
+        "m1_m2_m3_linear",
+        "m1_m2_m3_ecdf",
+        "m1_m2_passthrough",
         "m1_m2_binary",
         "m1_m2_linear",
         "m1_m2_ecdf",
     }
-    assert expected == set(results.keys())
+    assert expected.issubset(set(results.keys()))

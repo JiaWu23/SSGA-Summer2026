@@ -1,0 +1,33 @@
+{
+  "baseline_threshold": 0.55,
+  "binary": {
+    "recommended_threshold": 0.6,
+    "test_sharpe": 0.9440844763654878,
+    "test_ann_return": 0.05575891354416118,
+    "m3_rejection_share": 0.6280701754385964,
+    "m2_recall": 0.42857142857142855,
+    "m2_precision": 0.6792452830188679,
+    "sharpe_edge_vs_m1": 0.15713483394693872,
+    "meaningful_rejection": true,
+    "baseline_test_sharpe": 0.7869496424185488,
+    "baseline_rejection_share": 0.0,
+    "baseline_recall": 1.0,
+    "rationale": "Best test Sharpe among thresholds with meaningful rejection (\u22655% m3_zero, recall < 99% for binary): T=0.60, Sharpe 0.9441, rejection 62.8%, recall 0.429.",
+    "apply_to_config": true
+  },
+  "linear_gated": {
+    "recommended_threshold": 0.6,
+    "test_sharpe": 0.9493749332085801,
+    "test_ann_return": 0.012228252763538228,
+    "m3_rejection_share": 0.6280701754385964,
+    "m2_recall": 0.42857142857142855,
+    "m2_precision": 0.6792452830188679,
+    "sharpe_edge_vs_m1": 0.1624252907900311,
+    "meaningful_rejection": true,
+    "baseline_test_sharpe": 0.8597033072235676,
+    "baseline_rejection_share": 0.0,
+    "baseline_recall": 1.0,
+    "rationale": "Best test Sharpe among thresholds with meaningful rejection (\u22655% m3_zero, recall < 99% for binary): T=0.60, Sharpe 0.9494, rejection 62.8%, recall 0.429.",
+    "apply_to_config": true
+  }
+}

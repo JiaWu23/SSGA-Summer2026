@@ -1,0 +1,15 @@
+{
+  "apply_ic_weights": false,
+  "mean_m1_sharpe_gain": -0.0353403992382989,
+  "mean_ecdf_sharpe_gain": -0.08404144062211671,
+  "m1_fold_wins": 2,
+  "ecdf_fold_wins": 3,
+  "n_folds": 6,
+  "reason": "Walk-forward: mean M1 Sharpe -0.0353 (need \u22650.003), mean ECDF Sharpe -0.0840 (max loss 0.02); M1 wins 2/6. Keep baseline weights.",
+  "mean_ic_weights": {
+    "momentum": 0.40358799354701597,
+    "trend": 0.2411127128477856,
+    "macro": 0.13808511811574178,
+    "risk_penalty": 0.21721417548945662
+  }
+}

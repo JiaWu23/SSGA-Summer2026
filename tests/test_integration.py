@@ -20,6 +20,10 @@ def test_full_pipeline_smoke(tmp_path):
     base_cfg["split"]["train_start"] = "2018-01-01"
     base_cfg["split"]["train_end"] = "2019-12-31"
     base_cfg["split"]["test_start"] = "2020-01-01"
+    base_cfg["evaluation"] = {
+        "walk_forward_enabled": False,
+        "transaction_cost_bps_grid": [0, 5, 10],
+    }
     base_cfg["paths"] = {
         "raw": str(tmp_path / "data/raw"),
         "processed": str(tmp_path / "data/processed"),
@@ -46,6 +50,24 @@ def test_full_pipeline_smoke(tmp_path):
     assert (tmp_path / "data" / "backtests" / "long_only" / "metrics_table.csv").exists()
     assert (tmp_path / "data" / "backtests" / "long_short" / "metrics_table.csv").exists()
     assert (tmp_path / "reports" / "final_report.md").exists()
+    assert (tmp_path / "reports" / "m1_factor_analysis.md").exists()
+    assert (tmp_path / "reports" / "m2_diagnostics.md").exists()
+    assert (tmp_path / "reports" / "market_regime_analysis.md").exists()
+    assert (tmp_path / "reports" / "m3_allocation_analysis.md").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m1_factor_ic.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m1_factor_weight_tuning.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m2_calibration_table.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m2_architecture_benchmark.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "m3_allocation_summary.csv").exists()
+    assert (tmp_path / "data" / "backtests" / "long_only" / "evaluation" / "transaction_cost_sensitivity.csv").exists()
+    assert (tmp_path / "reports" / "evaluation_analysis.md").exists()
+    pred = tmp_path / "data" / "predictions" / "long_only" / "panel_with_predictions.parquet"
+    assert pred.exists()
+    import pandas as pd
+
+    panel = pd.read_parquet(pred)
+    assert "M3_size" in panel.columns
+    assert "allocation_state" in panel.columns
     assert (tmp_path / "reports" / "mode_comparison" / "m1_mode_comparison.png").exists()
     assert (tmp_path / "reports" / "final" / "long_only" / "strategy_cumulative_returns.png").exists()
     assert (tmp_path / "reports" / "assets" / "asset_component_analysis.md").exists()
