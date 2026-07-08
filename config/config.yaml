@@ -4,8 +4,42 @@ project:
   rebalance: weekly
 
 assets:
-  tickers: [SPY, TLT, GLD, VEA, VWO, HYG, VNQ]
-  vix_ticker: "^VIX"
+  source: index
+  tickers:
+    - SP500
+    - MSCI_EAFE
+    - MSCI_EM
+    - UST_7_10
+    - US_HIGH_YIELD
+    - GOLD_SPOT
+    - US_REIT
+  vix_ticker: VIX
+  index_dir: data/raw/index
+  index_sources:
+    SP500:
+      provider: yahoo
+      symbol: "^GSPC"
+    MSCI_EAFE:
+      provider: yahoo
+      symbol: EFA
+    MSCI_EM:
+      provider: yahoo
+      symbol: EEM
+    UST_7_10:
+        provider: yahoo
+        symbol: IEF
+    US_HIGH_YIELD:
+        provider: yahoo
+        symbol: HYG
+    GOLD_SPOT:
+      provider: yahoo
+      symbol: GC=F
+    US_REIT:
+      provider: fred
+      symbol: NASDAQNQUSB351020
+    VIX:
+      provider: yahoo
+      symbol: "^VIX"
 
 macro:
   fred_series:
@@ -22,9 +56,9 @@ split:
   # Can be earlier than train_start to warm up rolling features.
   data_start: "2000-01-01"
   # Train window start. May be set before 2006, but with require_full_universe: true the
-  # effective sample usually begins ~2007-07 when all seven ETFs exist (VEA/HYG are youngest).
+  # effective sample usually begins ~2007-07 when all seven index/proxy sleeves have sufficient public data coverage (public proxy coverage varies by sleeve).
   # Set require_full_universe: false (or --partial-universe) to train on partial asset groups
-  # in earlier years (e.g. SPY/TLT/GLD/VNQ/VWO from 2005, before VEA/HYG launched).
+  # in earlier years when some index/proxy sleeves have incomplete public data coverage.
   train_start: "2006-01-01"
   train_end: "2020-12-31"
   test_start: "2021-01-01"
@@ -105,13 +139,13 @@ portfolio:
 
 benchmarks:
   sixty_forty:
-    SPY: 0.15
-    VEA: 0.15
-    VWO: 0.15
-    VNQ: 0.15
-    TLT: 0.20
-    HYG: 0.20
-    GLD: 0.0
+    SP500: 0.15
+    MSCI_EAFE: 0.15
+    MSCI_EM: 0.15
+    US_REIT: 0.15
+    UST_7_10: 0.20
+    US_HIGH_YIELD: 0.20
+    GOLD_SPOT: 0.0
 
 paths:
   raw: data/raw

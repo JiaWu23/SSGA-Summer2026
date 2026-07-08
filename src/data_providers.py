@@ -67,7 +67,88 @@ class BloombergProvider(MarketDataProvider, MacroDataProvider):
         )
 
 
-class YFinanceProvider(MarketDataProvider):
+class IndexProvider(MarketDataProvider):
+    """
+    Index-first market data provider.
+
+    Pipeline asset ids are index sleeve names such as SP500, MSCI_EAFE,
+    UST_7_10, GOLD_SPOT, etc. The Yahoo/FRED symbols are only used for
+    public data retrieval. The final ticker column keeps the index asset id.
+    """
+
+    def __init__(self, index_dir: Path, index_sources: dict[str, dict[str, str]]) -> None:
+        self.index_dir = index_dir
+        self.index_sources = index_sources
+        self.index_dir.mkdir(parents=True, exist_ok=True)
+
+    def _load_or_download(
+        self,
+        asset_id: str,
+        start: str,
+        end: str | None = None,
+    ) -> pd.DataFrame:
+        source = self.index_sources.get(asset_id, {})
+        provider = source.get("provider", "manual")
+        symbol = source.get("symbol", asset_id)
+
+        safe_name = asset_id.replace("^", "")
+        cache_path = self.index_dir / f"{safe_name}.csv"
+
+        if cache_path.exists():
+            df = pd.read_csv(cache_path)
+            return df
+
+        if provider == "manual":
+            raise FileNotFoundError(
+                f"Missing manual index file for {asset_id}: {cache_path}"
+            )
+
+        if provider == "fred":
+            raw = _fetch_fred_csv(symbol)
+            date_col = raw.columns[0]
+            value_col = raw.columns[1]
+            df = raw.rename(
+                columns={
+                    date_col: "date",
+                    value_col: "adj_close",
+                }
+            )
+
+        elif provider == "yahoo":
+            raw = yf.download(
+                symbol,
+                start=start,
+                end=end,
+                auto_adjust=False,
+                progress=False,
+            )
+
+            if raw.empty:
+                raise ValueError(f"No Yahoo data returned for {asset_id} / {symbol}")
+
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = raw.columns.get_level_values(0)
+
+            price_col = "Adj Close" if "Adj Close" in raw.columns else "Close"
+            df = raw[[price_col]].reset_index()
+            df.columns = ["date", "adj_close"]
+
+        else:
+            raise ValueError(f"Unknown provider for {asset_id}: {provider}")
+
+        df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True).dt.tz_convert(None)
+        df["adj_close"] = pd.to_numeric(df["adj_close"], errors="coerce")
+        df = df.dropna(subset=["date", "adj_close"])
+        df = df[df["date"] >= pd.Timestamp(start)]
+
+        if end is not None:
+            df = df[df["date"] <= pd.Timestamp(end)]
+
+        df[["date", "adj_close"]].to_csv(cache_path, index=False)
+        logger.info("Saved index/proxy data for %s to %s", asset_id, cache_path)
+
+        return df
+
     def get_prices(
         self,
         tickers: list[str],
@@ -76,37 +157,39 @@ class YFinanceProvider(MarketDataProvider):
         frequency: str = "weekly",
     ) -> pd.DataFrame:
         frames: list[pd.DataFrame] = []
-        for ticker in tickers:
-            logger.info("Downloading %s from yfinance", ticker)
-            raw = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
-            if raw.empty:
-                raise ValueError(f"No data returned for ticker {ticker}")
-            if isinstance(raw.columns, pd.MultiIndex):
-                raw.columns = raw.columns.get_level_values(0)
-            df = raw.rename(
-                columns={
-                    "Open": "open",
-                    "High": "high",
-                    "Low": "low",
-                    "Close": "close",
-                    "Adj Close": "adj_close",
-                    "Volume": "volume",
-                }
-            )
-            df = df.reset_index().rename(columns={"Date": "date"})
-            df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
-            df["ticker"] = ticker.replace("^", "")
-            for col in PRICE_COLUMNS:
-                if col not in df.columns and col == "adj_close" and "close" in df.columns:
-                    df["adj_close"] = df["close"]
+
+        for asset_id in tickers:
+            logger.info("Loading index/proxy series for %s", asset_id)
+
+            df = self._load_or_download(asset_id, start=start, end=end)
+
+            df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True).dt.tz_convert(None)
+            df["adj_close"] = pd.to_numeric(df["adj_close"], errors="coerce")
+            df = df.dropna(subset=["date", "adj_close"])
+
+            df = df[df["date"] >= pd.Timestamp(start)]
+            if end is not None:
+                df = df[df["date"] <= pd.Timestamp(end)]
+
+            df["ticker"] = asset_id
+            df["open"] = df["adj_close"]
+            df["high"] = df["adj_close"]
+            df["low"] = df["adj_close"]
+            df["close"] = df["adj_close"]
+            df["volume"] = 0
+
             frames.append(df[["date", "ticker", *PRICE_COLUMNS]])
+
+        if not frames:
+            raise ValueError("No index market data was loaded.")
 
         daily = pd.concat(frames, ignore_index=True)
         daily = daily.sort_values(["ticker", "date"]).reset_index(drop=True)
+
         if frequency == "daily":
             return daily
-        return resample_to_weekly(daily)
 
+        return resample_to_weekly(daily)
 
 def _fetch_fred_csv(series_id: str, retries: int = 3, pause: float = 1.0, cache_path: Path | None = None) -> pd.DataFrame:
     if cache_path is not None and cache_path.exists():

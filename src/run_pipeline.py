@@ -20,7 +20,7 @@ from src.config import (
     load_config,
     save_config_snapshot,
 )
-from src.data_providers import ingest_macro_data, ingest_market_data
+from src.data_providers import IndexProvider, ingest_macro_data, ingest_market_data
 from src.data_validation import (
     build_modeling_panel,
     ticker_coverage_summary,
@@ -328,6 +328,20 @@ def run_pipeline(
 
     raw_dir = root / cfg.paths.raw
     processed_dir = root / cfg.paths.processed
+    
+    market_provider = None
+
+    if getattr(cfg.assets, "source", "yfinance") == "index":
+        index_dir = Path(cfg.assets.index_dir)
+        if not index_dir.is_absolute():
+            index_dir = root / index_dir
+
+        market_provider = IndexProvider(
+            index_dir=index_dir,
+            index_sources=cfg.assets.index_sources,
+        )
+
+        logger.info("Using index-first market data provider from %s", index_dir)
 
     market = ingest_market_data(
         cfg.assets.tickers,
@@ -336,6 +350,7 @@ def run_pipeline(
         cfg.split.test_end,
         raw_dir,
         processed_dir,
+        provider=market_provider,
         use_cache=not refresh_data,
     )
     requested_start = pd.Timestamp(ingest_start)
@@ -349,16 +364,9 @@ def run_pipeline(
             ingest_start,
             cached_start.date(),
         )
-        market = ingest_market_data(
-            cfg.assets.tickers,
-            cfg.assets.vix_ticker,
-            ingest_start,
-            cfg.split.test_end,
-            raw_dir,
-            processed_dir,
-            use_cache=False,
-        )
-        used_cache = False
+    
+
+    used_cache = False
     macro = ingest_macro_data(
         cfg.macro.fred_series,
         ingest_start,

@@ -21,55 +21,55 @@ from src.diagnostics import (
     sharpe_ratio,
 )
 
-ASSET_CATALOG: dict[str, dict[str, str]] = {
-    "SPY": {
-        "name": "SPDR S&P 500 ETF Trust",
-        "benchmark": "S&P 500 (proxy)",
-        "asset_class": "U.S. Equities",
-        "role": "U.S. large-cap equity beta and growth exposure",
-        "source": "yfinance — adjusted close, weekly",
+ASSET_CATALOG = {
+    "SP500": {
+        "name": "S&P 500 Index",
+        "benchmark": "S&P 500 Index (^GSPC)",
+        "source": "Yahoo Finance",
+        "role": "U.S. large-cap equity index sleeve",
+        "asset_class": "Equity",
     },
-    "TLT": {
-        "name": "iShares 20+ Year Treasury Bond ETF",
-        "benchmark": "Long-duration U.S. Treasuries",
-        "asset_class": "Government Bonds",
-        "role": "Duration and defensive interest-rate exposure",
-        "source": "yfinance — adjusted close, weekly",
+    "MSCI_EAFE": {
+        "name": "MSCI EAFE Index Proxy",
+        "benchmark": "MSCI EAFE public proxy (EFA)",
+        "source": "Yahoo Finance",
+        "role": "developed international equity index sleeve",
+        "asset_class": "Equity",
     },
-    "GLD": {
-        "name": "SPDR Gold Shares",
-        "benchmark": "Gold spot price (proxy)",
-        "asset_class": "Commodities / Gold",
-        "role": "Inflation hedge and safe-haven commodity exposure",
-        "source": "yfinance — adjusted close, weekly",
+    "MSCI_EM": {
+        "name": "MSCI Emerging Markets Index Proxy",
+        "benchmark": "MSCI Emerging Markets public proxy (EEM)",
+        "source": "Yahoo Finance",
+        "role": "emerging markets equity index sleeve",
+        "asset_class": "Equity",
     },
-    "VEA": {
-        "name": "Vanguard FTSE Developed Markets ETF",
-        "benchmark": "Developed ex-U.S. equities",
-        "asset_class": "International Equities",
-        "role": "Geographic diversification outside the U.S.",
-        "source": "yfinance — adjusted close, weekly",
+    "UST_7_10": {
+        "name": "U.S. Treasury 7-10 Year Index Proxy",
+        "benchmark": "U.S. Treasury 7-10 Year public proxy (IEF)",
+        "source": "Yahoo Finance",
+        "role": "intermediate Treasury duration sleeve",
+        "asset_class": "Fixed Income",
     },
-    "VWO": {
-        "name": "Vanguard FTSE Emerging Markets ETF",
-        "benchmark": "Emerging market equities",
-        "asset_class": "Emerging Market Equities",
-        "role": "Emerging market growth and risk premia",
-        "source": "yfinance — adjusted close, weekly",
+    "US_HIGH_YIELD": {
+        "name": "U.S. High Yield Bond Index Proxy",
+        "benchmark": "U.S. High Yield public proxy (HYG)",
+        "source": "Yahoo Finance",
+        "role": "credit risk and high-yield fixed income sleeve",
+        "asset_class": "Fixed Income",
     },
-    "HYG": {
-        "name": "iShares iBoxx High Yield Corporate Bond ETF",
-        "benchmark": "U.S. high-yield corporate bonds",
-        "asset_class": "Credit / High Yield",
-        "role": "Credit risk and income exposure",
-        "source": "yfinance — adjusted close, weekly",
+    "GOLD_SPOT": {
+        "name": "Gold Spot / Gold Index Proxy",
+        "benchmark": "Gold futures / spot proxy (GC=F)",
+        "source": "Yahoo Finance",
+        "role": "commodity and inflation-hedging sleeve",
+        "asset_class": "Commodity",
     },
-    "VNQ": {
-        "name": "Vanguard Real Estate ETF",
-        "benchmark": "U.S. REITs",
-        "asset_class": "Real Estate (REITs)",
-        "role": "Real estate and rate-sensitive income exposure",
-        "source": "yfinance — adjusted close, weekly",
+    "US_REIT": {
+        "name": "U.S. REIT Index",
+        "benchmark": "NASDAQ U.S. Benchmark REIT Index",
+        "source": "FRED: NASDAQNQUSB351020",
+        "role": "real estate equity index sleeve",
+        "asset_class": "Real Estate",
     },
 }
 
@@ -394,11 +394,11 @@ def _data_components_section(analysis: AssetAnalysisResult) -> list[str]:
         asset_rows.append(
             {
                 "Ticker": ticker,
-                "Instrument": meta["name"],
-                "Proxy / Benchmark": meta["benchmark"],
-                "Asset Class": meta["asset_class"],
-                "Role in Portfolio": meta["role"],
-                "Data Source": meta["source"],
+                "Instrument": meta.get("name", ticker),
+                "Proxy / Benchmark": meta.get("benchmark", meta.get("name", ticker)),
+                "Asset Class": meta.get("asset_class", "Multi-Asset"),
+                "Role in Portfolio": meta.get("role", "index sleeve in the multi-asset universe"),
+                "Data Source": meta.get("source", "Public market data"),
             }
         )
 
@@ -518,10 +518,10 @@ def generate_asset_component_report(
         *_individual_asset_section(analysis, image_prefix=""),
         "## Notes",
         "",
-        "- **SPY** is used as the practical proxy for the **S&P 500** in this ETF-only universe.",
-        "- **TLT** and **HYG** represent the **bond** sleeve (duration government vs. high-yield credit).",
-        "- **VEA** and **VWO** split developed vs. emerging international equities.",
-        "- **GLD** provides commodity/gold exposure; **VNQ** provides listed real estate.",
+        "- **SP500** represents the U.S. large-cap equity index sleeve.",
+        "- **UST_7_10** and **US_HIGH_YIELD** represent the fixed-income sleeves, separating Treasury duration from credit risk.",
+        "- **MSCI_EAFE** and **MSCI_EM** split developed international and emerging market equity exposure.",
+        "- **GOLD_SPOT** provides commodity/gold exposure; **US_REIT** provides listed real estate exposure.",
         "- Strategy results in the main report combine these components via M1 signals and M2 sizing.",
         "- Data provenance, ETL, validation, cache behavior, and fallback caveats are documented in `../../DATA_SOURCES_AND_ETL.md`.",
         "",

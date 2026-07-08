@@ -19,8 +19,21 @@ class ProjectConfig:
 
 @dataclass
 class AssetsConfig:
-    tickers: list[str] = field(default_factory=lambda: ["SPY", "TLT", "GLD", "VEA", "VWO", "HYG", "VNQ"])
-    vix_ticker: str = "^VIX"
+    source: str = "index"
+    tickers: list[str] = field(
+        default_factory=lambda: [
+            "SP500",
+            "MSCI_EAFE",
+            "MSCI_EM",
+            "UST_7_10",
+            "US_HIGH_YIELD",
+            "GOLD_SPOT",
+            "US_REIT",
+        ]
+    )
+    vix_ticker: str = "VIX"
+    index_dir: str = "data/raw/index"
+    index_sources: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 @dataclass

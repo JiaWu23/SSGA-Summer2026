@@ -16,13 +16,13 @@ from src.config import M1Config, PipelineConfig
 logger = logging.getLogger(__name__)
 
 ASSET_CLASS_MAP: dict[str, str] = {
-    "SPY": "equity",
-    "VEA": "equity",
-    "VWO": "equity",
-    "VNQ": "reit",
-    "TLT": "bond",
-    "HYG": "credit",
-    "GLD": "gold",
+    "SP500": "equity",
+    "MSCI_EAFE": "equity",
+    "MSCI_EM": "equity",
+    "US_REIT": "reit",
+    "UST_7_10": "bond",
+    "US_HIGH_YIELD": "credit",
+    "GOLD_SPOT": "gold",
 }
 
 
