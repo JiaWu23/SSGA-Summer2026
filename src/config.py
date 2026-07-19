@@ -41,6 +41,12 @@ class MacroConfig:
     fred_series: list[str] = field(
         default_factory=lambda: ["CPIAUCSL", "UNRATE", "INDPRO", "FEDFUNDS", "DGS10", "T10Y2Y", "BAA10Y"]
     )
+    # Which series' DERIVED signals actually feed the model. `fred_series` controls what is
+    # downloaded (and therefore the sample/panel); `model_series` controls which macro signals
+    # the model consumes. Excluded series' derived features are zeroed, NOT dropped, so the
+    # column set and sample are identical across ablations -- any result difference is then
+    # attributable to the macro signal alone, not to a shifted sample window. None => use all.
+    model_series: list[str] | None = None
 
 
 @dataclass

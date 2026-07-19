@@ -84,7 +84,21 @@ def _macro_wide(macro_weekly: pd.DataFrame, lag_weeks: int) -> pd.DataFrame:
     return wide
 
 
-def _macro_regime_features(macro: pd.DataFrame, vix: pd.Series | None) -> pd.DataFrame:
+# Maps each FRED series to the regime features derived from it (VIX-derived risk features
+# are intentionally excluded -- they are always kept regardless of the macro ablation).
+_SERIES_DERIVED_COLS: dict[str, list[str]] = {
+    "CPIAUCSL": ["inflation_trend", "inflation_up"],
+    "INDPRO": ["growth_trend", "growth_down"],
+    "T10Y2Y": ["yield_curve", "curve_inverted"],
+    "BAA10Y": ["credit_stress"],
+    "FEDFUNDS": ["policy_rate_change"],
+    "UNRATE": ["unemployment_change"],
+}
+
+
+def _macro_regime_features(
+    macro: pd.DataFrame, vix: pd.Series | None, model_series: list[str] | None = None
+) -> pd.DataFrame:
     out = pd.DataFrame(index=macro.index)
     if "CPIAUCSL" in macro.columns:
         cpi_yoy = macro["CPIAUCSL"].pct_change(52)
@@ -108,6 +122,13 @@ def _macro_regime_features(macro: pd.DataFrame, vix: pd.Series | None) -> pd.Dat
         out["vix_level"] = vix.shift(1)
         out["vix_change_4w"] = vix.pct_change(4).shift(1)
         out["risk_off"] = (vix > vix.rolling(156).quantile(0.75)).astype(float).shift(1)
+    if model_series is not None:
+        keep = set(model_series)
+        for series, cols in _SERIES_DERIVED_COLS.items():
+            if series not in keep:
+                for c in cols:
+                    if c in out.columns:
+                        out[c] = 0.0
     return out
 
 
@@ -211,13 +232,19 @@ def build_features(
     feature_frames.update(_dispersion_features(returns))
 
     macro_wide = _macro_wide(macro_weekly, cfg.features.macro_lag_weeks)
+    model_series = cfg.macro.model_series
+    _keep = set(model_series) if model_series is not None else None
     if "DGS10" in macro_wide.columns:
         carry = macro_wide["DGS10"].reindex(prices.index).ffill()
+        if _keep is not None and "DGS10" not in _keep:
+            carry = carry * 0.0
         feature_frames["carry_yield_level"] = pd.DataFrame(
             {c: carry for c in prices.columns}, index=prices.index
         )
     if "BAA10Y" in macro_wide.columns:
         credit_chg = macro_wide["BAA10Y"].diff(4).reindex(prices.index).ffill()
+        if _keep is not None and "BAA10Y" not in _keep:
+            credit_chg = credit_chg * 0.0
         feature_frames["credit_carry_chg"] = pd.DataFrame(
             {c: credit_chg for c in prices.columns}, index=prices.index
         )
@@ -225,7 +252,7 @@ def build_features(
     vix_series = None
     if not vix_data.empty:
         vix_series = vix_data.set_index("date")["adj_close"].sort_index()
-    regime = _macro_regime_features(macro_wide, vix_series)
+    regime = _macro_regime_features(macro_wide, vix_series, model_series)
 
     feat_long = _wide_to_long(feature_frames, prices.index, tickers)
     panel = panel.merge(feat_long, on=["date", "ticker"], how="left")

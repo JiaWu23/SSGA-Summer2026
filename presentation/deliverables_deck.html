@@ -1,0 +1,465 @@
+<style>
+  :root{
+    --ink:#0B1220; --surface:#111D2E; --surface-2:#18273B; --line:rgba(255,255,255,.10);
+    --text:#E7EEF6; --muted:#8FA2B8; --faint:#5D7188;
+    --accent:#35C2B4; --accent-dim:#1E7a73; --pos:#54B981; --neg:#E0776C; --amber:#E7B45C;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Helvetica,Arial,sans-serif;
+    --maxw:1080px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --ink:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --line:rgba(11,18,32,.12);
+      --text:#132033; --muted:#566577; --faint:#8494a6;
+      --accent:#128B80; --accent-dim:#8fd7d0; --pos:#2E9A5E; --neg:#C8503F; --amber:#B7801E;
+      --shadow:0 1px 0 rgba(255,255,255,.6), 0 14px 34px -22px rgba(20,40,70,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#0B1220; --surface:#111D2E; --surface-2:#18273B; --line:rgba(255,255,255,.10);
+    --text:#E7EEF6; --muted:#8FA2B8; --faint:#5D7188;
+    --accent:#35C2B4; --accent-dim:#1E7a73; --pos:#54B981; --neg:#E0776C; --amber:#E7B45C;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 18px 40px -24px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --ink:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --line:rgba(11,18,32,.12);
+    --text:#132033; --muted:#566577; --faint:#8494a6;
+    --accent:#128B80; --accent-dim:#8fd7d0; --pos:#2E9A5E; --neg:#C8503F; --amber:#B7801E;
+    --shadow:0 1px 0 rgba(255,255,255,.6), 0 14px 34px -22px rgba(20,40,70,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.5}
+  .deck{scroll-snap-type:y mandatory;overflow-y:auto;height:100vh;scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){.deck{scroll-behavior:auto}}
+
+  .slide{scroll-snap-align:start;min-height:100vh;display:flex;flex-direction:column;
+    justify-content:center;padding:clamp(28px,6vh,72px) clamp(20px,6vw,80px);
+    border-bottom:1px solid var(--line);position:relative}
+  .wrap{width:100%;max-width:var(--maxw);margin:0 auto}
+
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);display:flex;gap:14px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+  .eyebrow .num{color:var(--faint)}
+  .eyebrow .tag{color:var(--muted);border:1px solid var(--line);border-radius:999px;
+    padding:2px 9px;font-size:11px;letter-spacing:.1em}
+
+  h1{font-size:clamp(34px,6.2vw,68px);line-height:1.02;letter-spacing:-.03em;font-weight:800;
+    margin:0 0 20px;text-wrap:balance}
+  h2{font-size:clamp(25px,3.7vw,42px);line-height:1.08;letter-spacing:-.022em;font-weight:750;
+    margin:0 0 16px;text-wrap:balance}
+  h3{font-size:15px;font-weight:700;margin:0 0 8px;letter-spacing:-.01em}
+  p{margin:0 0 12px;color:var(--text)}
+  .lede{font-size:clamp(16px,1.7vw,19px);color:var(--muted);max-width:64ch}
+  .muted{color:var(--muted)}
+  strong{color:var(--text);font-weight:700}
+  .accent{color:var(--accent)}
+  .amber{color:var(--amber)}
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+  b.mono,.k{font-family:var(--mono);font-weight:600}
+
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:820px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;box-shadow:var(--shadow)}
+  .card.tight{padding:16px 18px}
+  .card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:10px}
+
+  .stat{display:flex;flex-direction:column;gap:4px}
+  .stat .v{font-family:var(--mono);font-size:clamp(26px,3.4vw,38px);font-weight:700;
+    letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12.5px;color:var(--muted)}
+
+  ul.clean{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px}
+  ul.clean li{padding-left:20px;position:relative;color:var(--muted);font-size:14.5px}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;
+    border-radius:2px;background:var(--accent)}
+  ul.clean li strong{color:var(--text)}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  th,td{padding:9px 13px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--faint);font-weight:600;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.hi td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  td.mono,.tnum{font-family:var(--mono)}
+
+  .flow{display:flex;flex-direction:column;gap:10px}
+  .frow{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+  .node{flex:1;min-width:120px;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;padding:13px 15px;position:relative}
+  .node.m{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+  .node .nt{font-weight:750;font-size:14px;display:flex;align-items:center;gap:8px}
+  .node .nt .badge{font-family:var(--mono);font-size:10px;background:var(--accent);color:#04201d;
+    padding:1px 6px;border-radius:5px;letter-spacing:.05em;font-weight:700}
+  .node .io{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .node .io b{color:var(--accent);font-weight:600}
+  .arrow{align-self:center;color:var(--faint);font-family:var(--mono);font-size:20px;padding:0 2px}
+  .band{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--faint);margin:2px 0}
+
+  .callout{border-left:3px solid var(--accent);padding:12px 0 12px 18px;color:var(--muted);
+    font-size:15px;max-width:70ch}
+  .callout strong{color:var(--text)}
+
+  .hud{position:fixed;right:16px;bottom:14px;z-index:20;display:flex;gap:10px;align-items:center;
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    background:color-mix(in srgb,var(--surface) 86%,transparent);border:1px solid var(--line);
+    border-radius:999px;padding:6px 12px;backdrop-filter:blur(8px)}
+  .hud .cur{color:var(--text)}
+  .hud button{all:unset;cursor:pointer;color:var(--muted);padding:0 4px}
+  .hud button:hover,.hud button:focus-visible{color:var(--accent)}
+  .hud button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .pbar{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:20;width:0;
+    transition:width .25s ease}
+  .theme{position:fixed;right:16px;top:14px;z-index:20}
+  .theme button{all:unset;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+    background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(8px)}
+  .theme button:hover{color:var(--accent)}
+
+  .footer-note{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.04em;
+    position:absolute;bottom:18px;left:clamp(20px,6vw,80px)}
+  .krow{display:flex;gap:26px;flex-wrap:wrap;margin-top:6px}
+  .krow .stat .v{font-size:clamp(22px,2.8vw,30px)}
+</style>
+
+<div class="pbar" id="pbar"></div>
+<div class="theme"><button id="themeBtn" aria-label="Toggle theme">◐ THEME</button></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span>SSGA Field Project · Summer 2026</span><span class="tag">Research only — not investment advice</span></div>
+      <h1>Multi-Asset Meta-Labeling:<br>architecture, evidence, and<br>an honest read on M3</h1>
+      <p class="lede">A weekly seven-sleeve index allocator built on the Joubert (2022) three-layer design — M1 selects the side, M2 estimates trade quality, M3 sizes the bet. This deck answers Xuesong's four deliverables and reports what survives walk-forward.</p>
+      <div class="krow">
+        <div class="stat"><span class="v accent">7</span><span class="l">index sleeves, weekly</span></div>
+        <div class="stat"><span class="v accent">3</span><span class="l">decision layers · M1 / M2 / M3</span></div>
+        <div class="stat"><span class="v accent">6</span><span class="l">walk-forward folds, 2015–2026</span></div>
+      </div>
+    </div>
+    <div class="footer-note">Ela Kumuk · reproducible run · git-pinned · index-first universe</div>
+  </section>
+
+  <!-- 2 · DELIVERABLES -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">02</span><span>What this deck delivers</span></div>
+      <h2>Four deliverables, one authoritative run</h2>
+      <div class="grid g2" style="margin-top:22px">
+        <div class="card"><div class="lab">Deliverable 1</div><h3>Complete architecture diagram</h3><p class="muted" style="font-size:14px;margin:0">Inputs, outputs, training and inference for M1, M2, M3 and the portfolio layer — end to end.</p></div>
+        <div class="card"><div class="lab">Deliverable 2</div><h3>Worked numerical example</h3><p class="muted" style="font-size:14px;margin:0">One asset (SP500) followed through every stage to its final portfolio weight, using the exact code formulas.</p></div>
+        <div class="card"><div class="lab">Deliverable 3</div><h3>Structured experimental matrix</h3><p class="muted" style="font-size:14px;margin:0">A broad, staged design across M1 weights, allocations, M3 sizing functions, regime conditioning and cost-awareness.</p></div>
+        <div class="card"><div class="lab">Deliverable 4</div><h3>Exposure-controlled results</h3><p class="muted" style="font-size:14px;margin:0">Tests that separate <em>genuine selection skill</em> from <em>mechanical de-risking</em> — the core of the M3 question.</p></div>
+      </div>
+      <div class="callout" style="margin-top:24px">Plus the two conceptual asks: a precise account of <strong>meta-labeling</strong>, and <strong>one reproducible set of results</strong> where every number traces to a config, data window and code version.</div>
+    </div>
+  </section>
+
+  <!-- 3 · ARCHITECTURE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">03</span><span>Deliverable 1 · Architecture</span><span class="tag">inputs → weights</span></div>
+      <h2>Information flow, end to end</h2>
+      <div class="flow" style="margin-top:14px">
+        <div class="band">Data layer — weekly Friday close, shift(1), macro lagged 4w (no look-ahead)</div>
+        <div class="frow">
+          <div class="node"><div class="nt">Inputs</div><div class="io">7 index sleeves · VIX · 7 FRED macro series</div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="nt">Features</div><div class="io">momentum · trend · vol · drawdown · dispersion · macro regime</div></div>
+        </div>
+        <div class="band" style="margin-top:6px">Decision stack</div>
+        <div class="frow">
+          <div class="node m"><div class="nt"><span class="badge">M1</span> Side</div><div class="io"><b>train</b> rule-based (fixed weights)<br><b>infer</b> score → weekly top-3<br><b>out</b> signal ∈ {0,+1}</div></div>
+          <div class="arrow">→</div>
+          <div class="node m"><div class="nt"><span class="badge">M2</span> Quality</div><div class="io"><b>train</b> logistic on M1≠0 rows<br><b>infer</b> P(trade succeeds)<br><b>out</b> p_success ∈ (0,1)</div></div>
+          <div class="arrow">→</div>
+          <div class="node m"><div class="nt"><span class="badge">M3</span> Size</div><div class="io"><b>rule</b> binary / linear / ECDF<br>(not trained)<br><b>out</b> M3_size ∈ [0,1]</div></div>
+        </div>
+        <div class="frow" style="margin-top:6px">
+          <div class="node"><div class="nt">Portfolio</div><div class="io">raw_w = signal · M3_size · budget → 25%/name cap → 100% gross → 12% vol target</div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="nt">Backtest</div><div class="io">weekly returns · turnover · 5 bps cost · vs EW 1/7 &amp; 60/40</div></div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:22px"><strong>One line:</strong> M1 sets <span class="accent">recall</span> (finds moves), M2 sets <span class="accent">precision</span> (which pay), M3 sets <span class="accent">exposure</span> (how much). M3 is the only stage that is a fixed function, not a model — which is exactly why its design space deserves a hard search.</div>
+    </div>
+  </section>
+
+  <!-- 4 · M1 DETAIL -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">04</span><span>M1 · the primary side model</span></div>
+      <h2>Selection, not sizing</h2>
+      <div class="grid g2" style="margin-top:18px">
+        <div class="card">
+          <div class="lab">Inference</div>
+          <p style="font-family:var(--mono);font-size:14px;line-height:1.9;margin:0">score = <span class="amber">0.45</span>·mom + <span class="amber">0.25</span>·trend<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="amber">0.20</span>·macro − <span class="amber">0.10</span>·risk</p>
+          <p class="muted" style="font-size:14px;margin-top:14px">Each Friday, rank the 7 sleeves by score and go long the <strong>top 3</strong> (<span class="k">allocation_mode: top_k</span>). Long-only in the production sleeve.</p>
+        </div>
+        <div class="card">
+          <div class="lab">Training</div>
+          <ul class="clean">
+            <li><strong>Rule-based (default):</strong> no fit — the four weights are an <em>economic prior</em>, not an optimized result.</li>
+            <li>Optional ML variant fits logistic on <b class="mono">m1_target ∈ {−1,0,+1}</b> = sign of forward 4-week return vs ±0.5%.</li>
+            <li>Conviction sizing is <strong>off</strong> — the score selects; it does not size.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--neg) 38%,var(--line))">
+        <div class="lab" style="color:var(--neg)">Known weakness — flagged, not hidden</div>
+        <div class="grid g2" style="gap:18px;align-items:center">
+          <p class="muted" style="font-size:14px;margin:0"><strong>The weights were never experimentally justified.</strong> The existing grid search tuned train window and threshold — not factor weights. The one tuning attempt (IC-proportional) was <span class="neg">walk-forward-rejected</span>. And momentum &amp; trend are near-collinear, so a 45/25 split puts ~70% of the weight on one underlying signal.</p>
+          <div class="krow">
+            <div class="stat"><span class="v neg">0.78</span><span class="l">corr(momentum, trend), n=5523</span></div>
+            <div class="stat"><span class="v">0.09</span><span class="l">corr(macro, momentum) — the only diversifier</span></div>
+          </div>
+        </div>
+        <p class="muted" style="font-size:13px;margin:14px 0 0">→ Fix (Axis A): merge momentum + trend into a single <em>technical</em> factor, then walk-forward-sweep technical / macro / risk weights. This is the SSGA mentor's own suggestion, now quantified.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · META-LABELING -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">05</span><span>Meta-labeling, precisely</span><span class="tag">Xuesong's five questions</span></div>
+      <h2>M2 judges M1's trade — it does not trade</h2>
+      <div class="grid g2" style="margin-top:10px;gap:14px">
+        <div class="card tight"><div class="lab">Training sample</div><p class="muted" style="font-size:13.5px;margin:0">Only asset-weeks where <b class="mono">M1_signal ≠ 0</b> — i.e. the trades M1 actually proposed. M2 never sees flat weeks.</p></div>
+        <div class="card tight"><div class="lab">Meta-label construction</div><p class="muted" style="font-size:13.5px;margin:0"><b class="mono">meta_label = 1</b> if <b class="mono">sign(M1)·r₄w &gt; cost</b>, else 0. A binary “did this trade pay?” — <span class="neg">not</span> a −1/+1 direction.</p></div>
+        <div class="card tight"><div class="lab">Horizon &amp; threshold</div><p class="muted" style="font-size:13.5px;margin:0"><b class="mono">4-week</b> forward window = the weekly-rebalance holding period; <b class="mono">±0.5%</b> plus a <b class="mono">0.1%</b> cost hurdle embeds a minimal edge above noise and frictions.</p></div>
+        <div class="card tight"><div class="lab">Features &amp; why</div><p class="muted" style="font-size:13.5px;margin:0">52 features: momentum/trend/vol, cross-asset dispersion, macro regime, M1 context. Economically: <em>when does a momentum trade fail?</em> — in stress, crowding, adverse regime.</p></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="lab">Calibration · validation · interpretation</div>
+        <div class="krow">
+          <div class="stat"><span class="v">0.589</span><span class="l">test AUC-ROC (full sample)</span></div>
+          <div class="stat"><span class="v neg">≈0.49</span><span class="l">mean AUC across walk-forward folds</span></div>
+          <div class="stat"><span class="v">0.84</span><span class="l">recall @ threshold 0.55</span></div>
+          <div class="stat"><span class="v">60.8%</span><span class="l">base rate (M1 trades that pay)</span></div>
+        </div>
+        <p class="muted" style="font-size:13.5px;margin:14px 0 0">Sigmoid-calibrated; validated on the out-of-sample window only. <strong>Honest read:</strong> mean P on winners (0.577) ≈ on losers (0.574) — M2 barely separates. At recall ≈ 1 it approves nearly every trade, so its value is a <em>soft input to M3 sizing</em>, not a hard filter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · M3 -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">06</span><span>M3 · bet sizing</span></div>
+      <h2>Three rules map probability → bet fraction</h2>
+      <div class="grid g3" style="margin-top:18px">
+        <div class="card"><div class="lab">Binary</div><p style="font-family:var(--mono);font-size:15px;margin:0 0 8px">f = 1[p ≥ T]</p><p class="muted" style="font-size:13px;margin:0">All-or-nothing at T=0.55. At recall≈1 it approves ~everything → ≈ M1-only.</p></div>
+        <div class="card"><div class="lab">Linear</div><p style="font-family:var(--mono);font-size:15px;margin:0 0 8px">f = max(0, 2p−1)</p><p class="muted" style="font-size:13px;margin:0">Very defensive; high Sharpe but starves return. A drawdown tool.</p></div>
+        <div class="card" style="border-color:color-mix(in srgb,var(--accent) 45%,var(--line))"><div class="lab" style="color:var(--accent)">ECDF · production</div><p style="font-family:var(--mono);font-size:15px;margin:0 0 8px">f = rank_train(p)</p><p class="muted" style="font-size:13px;margin:0">Rank-based on the train distribution. Best risk-adjusted of the three — but see Deliverable 4.</p></div>
+      </div>
+      <div class="callout" style="margin-top:22px"><strong>The mental model:</strong> M1 = opportunity selector · M2 = trade-quality probability · M3 = capital deployment · Portfolio = risk-budget enforcement. The three M3 rules differ mostly in <em>how much they deploy</em> — which is why their drawdowns differ, and why that difference must be controlled before it is called skill.</div>
+    </div>
+  </section>
+
+  <!-- 7 · WORKED EXAMPLE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">07</span><span>Deliverable 2 · Worked example</span><span class="tag">SP500, one week</span></div>
+      <h2>One asset, every stage, to a final weight</h2>
+      <div class="scroll" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Stage</th><th>Quantity</th><th>Value</th><th>Formula (from code)</th></tr></thead>
+          <tbody>
+            <tr><td>Features</td><td>mom / trend / macro / risk scores</td><td class="mono">0.80 / 0.50 / 0.30 / 0.40</td><td class="mono muted">z-scored, no look-ahead</td></tr>
+            <tr class="hi"><td>M1 score</td><td>M1_score</td><td class="mono">0.505</td><td class="mono muted">0.45·.80+0.25·.50+0.20·.30−0.10·.40</td></tr>
+            <tr><td>M1 signal</td><td>rank 2 of 7 → top-3</td><td class="mono pos">+1</td><td class="mono muted">top_k, k=3</td></tr>
+            <tr class="hi"><td>M2</td><td>p_success</td><td class="mono">0.58</td><td class="mono muted">calibrated logistic, 52 features</td></tr>
+            <tr><td>M3 size</td><td>binary / linear / ECDF</td><td class="mono">1.00 / 0.16 / 0.62</td><td class="mono muted">1[p≥.55] / max(0,2p−1) / ECDF(p)</td></tr>
+            <tr><td>Raw weight</td><td>raw_w (ECDF)</td><td class="mono">0.0886</td><td class="mono muted">1 × 0.62 × (1/7)</td></tr>
+            <tr><td>Constraints</td><td>25% cap · 100% gross</td><td class="mono">0.0886</td><td class="mono muted">unbound here</td></tr>
+            <tr><td>Vol target</td><td>scale to 12% ann.</td><td class="mono">×1.36</td><td class="mono muted">0.12 / 0.088 realized</td></tr>
+            <tr class="hi"><td>Final weight</td><td>SP500 book weight</td><td class="mono amber">≈ 12.0%</td><td class="mono muted">0.0886 × 1.36</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:12px">Illustrative feature inputs; every transform is the exact production formula. The three M3 rules give final weights of ~19% / ~3% / ~12% for the <em>same</em> p_success — they differ in deployment, not in which name was picked.</p>
+    </div>
+  </section>
+
+  <!-- 8 · EXPERIMENTAL MATRIX -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">08</span><span>Deliverable 3 · Experimental matrix</span></div>
+      <h2>A broad, <em>staged</em> search — not a fishing trip</h2>
+      <div class="scroll" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Axis</th><th>Levels</th><th>Baseline</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td>A · M1 factor weights</td><td>merge mom+trend → technical; sweep technical/macro/risk</td><td class="mono">45/25/20/10</td></tr>
+            <tr><td>B · Selection rule</td><td>top-K∈{2,3,4} · threshold · min_score</td><td class="mono">top-3</td></tr>
+            <tr><td>C · Asset allocation</td><td>equal · score-prop · inverse-vol · risk-parity · min-var · mean-var</td><td class="mono">1/7 equal</td></tr>
+            <tr><td>D · M3 sizing fn</td><td>binary(T-grid) · linear · ECDF · power(pᵞ) · sigmoid · frac-Kelly · μ/σ</td><td class="mono">ECDF</td></tr>
+            <tr><td>E · Conditioning</td><td>global · per-asset · regime (HMM state)</td><td class="mono">global</td></tr>
+            <tr><td>F · Cost-awareness</td><td>none · turnover-penalized · no-trade band</td><td class="mono">none</td></tr>
+            <tr><td>G · Covariance</td><td>diagonal · Ledoit-Wolf shrinkage</td><td class="mono">diagonal</td></tr>
+            <tr><td>H · Exposure control</td><td>raw · gross-matched · vol-matched · constant-haircut</td><td class="mono">→ D4</td></tr>
+            <tr><td>I · Evaluation</td><td>full-sample · 6-fold walk-forward · crisis sub-periods · Deflated Sharpe</td><td class="mono">walk-fwd</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="margin-top:18px"><strong>Protocol:</strong> sweep one axis at a time, rank on <em>walk-forward</em> mean Sharpe, report every candidate with its <strong>Deflated Sharpe Ratio</strong> (multiple-testing correction), then combine only walk-forward-positive winners. Axis H runs on every survivor.</div>
+    </div>
+  </section>
+
+  <!-- 9 · EXPOSURE CONTROL -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">09</span><span>Deliverable 4 · Genuine vs mechanical</span><span class="tag">the M3 question</span></div>
+      <h2>Does M3 pick better trades, or just deploy less?</h2>
+      <div class="grid g2" style="margin-top:14px;gap:16px">
+        <div>
+          <ul class="clean">
+            <li><strong>① Constant-haircut control.</strong> Scale M1-only by a fixed factor to ECDF's average gross (~52%). If ECDF ≈ this dumb de-risk → M3 is a volatility knob, not selection.</li>
+            <li><strong>② Vol-matched.</strong> Scale every variant to the same 10% ex-ante vol, then compare. Any surviving edge is not mechanical.</li>
+            <li><strong>③ M3_size information coefficient.</strong> Spearman(M3_size, realized trade PnL). If ≈ 0, M3 does not distinguish strong from weak candidates — full stop.</li>
+            <li><strong>④ Drawdown decomposition.</strong> ΔDD = exposure effect + selection effect. Report both, not the raw gap.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="lab">Current walk-forward evidence</div>
+          <div class="scroll" style="border:none">
+          <table>
+            <thead><tr><th>Fold</th><th>M1-only</th><th>ECDF edge</th><th>IR vs EW</th></tr></thead>
+            <tbody>
+              <tr><td>2015–16</td><td class="mono">−0.13</td><td class="mono neg">−0.38</td><td class="mono neg">−0.53</td></tr>
+              <tr><td>2017–18</td><td class="mono">0.95</td><td class="mono neg">−0.70</td><td class="mono neg">−0.58</td></tr>
+              <tr><td>2019–20</td><td class="mono">0.57</td><td class="mono neg">−0.14</td><td class="mono neg">−0.98</td></tr>
+              <tr><td>2021–22</td><td class="mono">−0.06</td><td class="mono pos">+0.92</td><td class="mono pos">+0.55</td></tr>
+              <tr><td>2023–24</td><td class="mono">1.09</td><td class="mono neg">−0.46</td><td class="mono neg">−1.14</td></tr>
+              <tr><td>2025–26</td><td class="mono">1.83</td><td class="mono neg">−0.38</td><td class="mono neg">−1.08</td></tr>
+              <tr class="hi"><td>mean</td><td class="mono">0.71</td><td class="mono neg">−0.19</td><td class="mono neg">−0.63</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="muted" style="font-size:12.5px;margin:12px 0 0">ECDF beats M1-only in <strong>1 of 6</strong> folds. ECDF's lower drawdown coincides with ~52% gross vs EW's 100% — consistent with mechanical de-risking. Exposure-matched numbers ①–③ are the decisive next test.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · MACRO EXPERIMENT -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">10</span><span>Broader experimentation · macro</span><span class="tag">sample-controlled</span></div>
+      <h2>Is macro the lever? A controlled test says no</h2>
+      <div class="grid g2" style="margin-top:12px;gap:18px">
+        <div class="card">
+          <div class="lab">Method — the control that makes it clean</div>
+          <p class="muted" style="font-size:13.5px;margin:0">Download all 7 macro series for <em>every</em> variant so the sample window is byte-identical; vary only which macro signals <strong>feed the model</strong> (excluded signals zeroed, not dropped). Any Sharpe difference is then the macro signal — not a shifted sample.</p>
+        </div>
+        <div class="card">
+          <div class="lab">Result — M1-only walk-forward Sharpe</div>
+          <div class="scroll" style="border:none">
+          <table>
+            <thead><tr><th>Macro set</th><th>Sharpe</th><th>vs off</th></tr></thead>
+            <tbody>
+              <tr class="hi"><td>growth+inflation</td><td class="mono">0.714</td><td class="mono">+0.013</td></tr>
+              <tr><td>full baseline</td><td class="mono">0.709</td><td class="mono">+0.008</td></tr>
+              <tr><td>macro OFF</td><td class="mono">0.701</td><td class="mono muted">—</td></tr>
+              <tr><td>rates+credit</td><td class="mono neg">0.668</td><td class="mono neg">−0.033</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:18px">The best macro set beats <em>macro entirely off</em> by <strong>+0.013 Sharpe</strong> — and that lead is not fold-consistent (paired t ≈ 0.19). Rates/credit signals actively <span class="neg">hurt</span> M1. Momentum, trend and VIX carry M1. <strong>Next:</strong> a clean meta-labeling test — strip macro from M1, let it live only in M2 (running now).</div>
+    </div>
+  </section>
+
+  <!-- 11 · REPRODUCIBILITY -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">11</span><span>One authoritative set of results</span></div>
+      <h2>Every number traces to a run</h2>
+      <div class="grid g3" style="margin-top:18px">
+        <div class="card"><div class="lab">Pinned</div><ul class="clean"><li>git SHA + config hash</li><li>data window &amp; universe</li><li>timestamped run dir</li></ul></div>
+        <div class="card"><div class="lab">Verified</div><ul class="clean"><li>Baseline walk-forward reproduced <strong>bit-for-bit</strong></li><li>Same 6 folds, same −0.19 ECDF edge</li></ul></div>
+        <div class="card"><div class="lab">Flagged</div><ul class="clean"><li><span class="neg">Contradiction found:</span> stale report claimed ECDF edge +0.177 / 4-of-6</li><li>True index-era value: −0.19 / 1-of-6</li></ul></div>
+      </div>
+      <div class="callout" style="margin-top:22px">The earlier <span class="k">+0.177</span> headline was an ETF-era artifact colliding with index-era numbers. Reconciling every report to the reproduced index-era run is the reproducibility deliverable — no number without a run behind it.</div>
+    </div>
+  </section>
+
+  <!-- 12 · VERDICT -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="eyebrow"><span class="num">12</span><span>Honest verdict &amp; next phase</span></div>
+      <h2>A rigorous baseline, not a conclusion</h2>
+      <div class="grid g2" style="margin-top:14px;gap:20px">
+        <div>
+          <h3 class="muted" style="font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase">What holds up</h3>
+          <ul class="clean" style="margin-top:8px">
+            <li><strong>M1-only</strong> is the robust core: ≈ EW return, ~half the drawdown, higher Sharpe.</li>
+            <li>The <strong>validation discipline</strong> — walk-forward, deflated Sharpe, sample-controlled ablations — is the real asset.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="muted" style="font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase">What is unproven</h3>
+          <ul class="clean" style="margin-top:8px">
+            <li><strong>M2/M3 meta-labeling</strong> does not beat M1-only out-of-sample (1/6 folds).</li>
+            <li>ECDF's drawdown edge may be <strong>mechanical</strong> — D4's exposure-matched tests decide it.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid g4" style="margin-top:24px">
+        <div class="card tight"><div class="lab">Next 1</div><p style="font-size:13.5px;margin:0">Exposure-matched M3 (D4 ①–③)</p></div>
+        <div class="card tight"><div class="lab">Next 2</div><p style="font-size:13.5px;margin:0">Regime-conditioned M3</p></div>
+        <div class="card tight"><div class="lab">Next 3</div><p style="font-size:13.5px;margin:0">Merge mom+trend → technical (Axis A)</p></div>
+        <div class="card tight"><div class="lab">Next 4</div><p style="font-size:13.5px;margin:0">Broaden allocation axis (C)</p></div>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:24px;font-family:var(--mono)">The value of meta-labeling and M3 is an open question — this deck defines the tests that will answer it.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <button id="prev" aria-label="Previous slide">◄</button>
+  <span><span class="cur" id="cur">1</span> / <span id="tot">12</span></span>
+  <button id="next" aria-label="Next slide">►</button>
+</div>
+
+<script>
+(function(){
+  var deck=document.getElementById('deck');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cur=document.getElementById('cur'), tot=document.getElementById('tot'), pbar=document.getElementById('pbar');
+  tot.textContent=slides.length;
+  function idx(){var s=deck.scrollTop, h=window.innerHeight; return Math.round(s/h);}
+  function update(){var i=Math.min(slides.length-1,Math.max(0,idx()));
+    cur.textContent=i+1; pbar.style.width=((i)/(slides.length-1)*100)+'%';}
+  function go(i){i=Math.min(slides.length-1,Math.max(0,i)); slides[i].scrollIntoView({behavior:'smooth'});}
+  deck.addEventListener('scroll',function(){window.requestAnimationFrame(update);},{passive:true});
+  document.getElementById('next').addEventListener('click',function(){go(idx()+1)});
+  document.getElementById('prev').addEventListener('click',function(){go(idx()-1)});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'||e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(idx()+1);}
+    if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();go(idx()-1);}
+  });
+  var root=document.documentElement, tb=document.getElementById('themeBtn');
+  tb.addEventListener('click',function(){
+    var d=root.getAttribute('data-theme');
+    if(!d){d=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    root.setAttribute('data-theme', d==='dark'?'light':'dark');
+  });
+  update();
+})();
+</script>
