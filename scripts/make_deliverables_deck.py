@@ -213,16 +213,20 @@ title_slide(
     "Ela Kumuk  ·  SSGA Field Project  ·  Research only, not investment advice",
 )
 
-bullets_slide(
-    "Four deliverables, one authoritative run", "What this deck delivers",
+table_slide(
+    "Your feedback — where each point is addressed", "Scope of this update",
+    ["Feedback from the review", "Addressed on"],
     [
-        ("Deliverable 1 — A complete architecture diagram: the inputs, outputs, training and inference of M1, M2, M3 and the portfolio layer.", 0),
-        ("Deliverable 2 — A worked numerical example following one asset (SP500) through every stage to its final portfolio weight.", 0),
-        ("Deliverable 3 — A structured experimental matrix spanning M1 weights, asset allocations, M3 sizing functions, regime conditioning and cost-awareness.", 0),
-        ("Deliverable 4 — Exposure-controlled and walk-forward results that separate genuine model value from mechanical risk reduction.", 0),
-        ("Plus the two conceptual asks: a precise account of meta-labeling, and one reproducible set of results where every number traces to a config, data window and code version.", 0),
+        ["1 · Complete M1–M2–M3 architecture (inputs, outputs, training, inference)", "Slides 3–4"],
+        ["2 · Worked numerical example — one asset to its final weight", "Slide 8"],
+        ["3 · Stronger meta-labeling explanation (the five questions)", "Slides 5–6"],
+        ["4 · Broader experimentation — M3 & asset-allocation alternatives", "Slides 9, 11–12"],
+        ["5 · Control for gross / net exposure or volatility (mechanical vs genuine)", "Slide 10"],
+        ["6 · Walk-forward testing across multiple market periods", "Slides 10–12"],
+        ["7 · One authoritative, reproducible set of results", "Slide 13"],
     ],
-    takeaway="This is treated as the beginning of the investigation, not a final verdict on meta-labeling or M3.",
+    note="Every requested item maps to a specific slide; all numbers come from reproduced, walk-forward runs.",
+    hi_col_map={(r, 1): ACCENT for r in range(1, 8)},
 )
 
 arch_slide()
