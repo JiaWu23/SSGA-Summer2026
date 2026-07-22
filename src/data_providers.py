@@ -304,6 +304,12 @@ def resample_to_weekly(daily: pd.DataFrame) -> pd.DataFrame:
 
 
 def resample_macro_to_weekly(daily: pd.DataFrame) -> pd.DataFrame:
+    """Map each macro observation to its week-ending Friday; keep sparse weeks.
+
+    Gaps between monthly/irregular releases are filled later in feature engineering
+    via ``src.time_alignment`` (train: interpolate; test/eval: forward-fill) onto
+    the market weekly calendar before the publication lag is applied.
+    """
     parts: list[pd.DataFrame] = []
     for series, grp in daily.groupby("series"):
         g = grp.set_index("date").sort_index()

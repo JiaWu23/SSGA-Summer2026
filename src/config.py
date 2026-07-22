@@ -69,6 +69,9 @@ class FeaturesConfig:
     trend_windows: list[int] = field(default_factory=lambda: [10, 40])
     macro_lag_weeks: int = 4
     winsorize_pct: float = 0.01
+    # Align sparse/misaligned macro onto the weekly market calendar.
+    # Train: time-interpolate interior gaps, then ffill. Test/eval: ffill only.
+    align_interpolate_train: bool = True
 
 
 @dataclass
