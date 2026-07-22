@@ -36,7 +36,7 @@ Implementation: [`src/data_providers.py`](src/data_providers.py) — `IndexProvi
 | `CPIAUCSL`, `UNRATE`, `INDPRO`, `FEDFUNDS` | FRED | Regime / macro features |
 | `DGS10`, `T10Y2Y`, `BAA10Y` | FRED | Rates, curve, credit stress |
 
-Macro series are **not traded**. Forward-filled to weekly frequency and lagged by `features.macro_lag_weeks` (4 weeks).
+Macro series are **not traded**. Sparse / multi-frequency releases are aligned onto the weekly market Friday calendar in feature engineering (`src/time_alignment.py`): **train** uses time interpolation between known observations then forward-fill; **test/eval** uses **forward-fill only** (last known value until the next observation). A publication lag of `features.macro_lag_weeks` (4 weeks) is applied after alignment. Toggle: `features.align_interpolate_train`.
 
 ---
 
@@ -72,9 +72,18 @@ flowchart TD
 - Macro: `FredProvider` → `data/raw/macro_daily.parquet`, weekly `data/processed/macro_weekly.parquet`.
 - Weekly market: `data/processed/market_weekly.parquet`.
 
-### 2. Resampling
+### 2. Resampling and time alignment
 
 Market data resampled to `W-FRI` (Friday): OHLCV aggregates; `adj_close` = last daily adjusted close in the week.
+
+Macro: each FRED observation is mapped to its week-ending Friday (`resample_macro_to_weekly`), keeping sparse weeks. At feature build, series are aligned onto the **market weekly timestamp grid**:
+
+| Split | Alignment |
+| --- | --- |
+| Train (`date <= split.train_end`) | Time interpolation between known releases, then forward-fill |
+| Test / eval (`date > train_end`) | Forward-fill only (no future-blended interpolation) |
+
+Then `features.macro_lag_weeks` shifts the aligned series. Implementation: `src/time_alignment.py`, used by `_macro_wide` in `src/feature_engineering.py`.
 
 ### 3. Cache and refresh
 
@@ -96,7 +105,7 @@ Per run under `runs/<timestamp>/`: `validation_report.json`, `ticker_coverage.cs
 
 ### 6. Feature engineering
 
-`src/feature_engineering.py` — momentum/trend/vol shifted +1 week; macro lagged 4 weeks; train-only winsorization; labels excluded from M1/M2 features.
+`src/feature_engineering.py` — momentum/trend/vol shifted +1 week; macro aligned to market Fridays (train interpolate / eval ffill) then lagged 4 weeks; train-only winsorization; labels excluded from M1/M2 features.
 
 ---
 

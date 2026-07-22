@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import PipelineConfig
+from src.time_alignment import align_dataframe_to_index
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +78,35 @@ def _cross_sectional_zscore(wide: pd.DataFrame) -> pd.DataFrame:
     return wide.sub(mean, axis=0).div(std, axis=0)
 
 
-def _macro_wide(macro_weekly: pd.DataFrame, lag_weeks: int) -> pd.DataFrame:
+def _macro_wide(
+    macro_weekly: pd.DataFrame,
+    lag_weeks: int,
+    *,
+    target_index: pd.DatetimeIndex | None = None,
+    train_end: str | pd.Timestamp | None = None,
+    interpolate_train: bool = True,
+) -> pd.DataFrame:
+    """
+    Pivot macro to wide form, align onto the market weekly calendar, then lag.
+
+    When ``target_index`` is provided (normal pipeline path):
+    - Train window: time-interpolate between known releases, then forward-fill.
+    - Test/eval window (after ``train_end``): forward-fill only so the last known
+      value propagates until the next observation (no future-blended interpolate).
+    Publication lag ``lag_weeks`` is applied after alignment.
+    """
     wide = macro_weekly.pivot(index="date", columns="series", values="value").sort_index()
-    wide = wide.ffill().shift(lag_weeks)
     wide.index = pd.to_datetime(wide.index)
-    return wide
+    if target_index is not None:
+        wide = align_dataframe_to_index(
+            wide,
+            target_index,
+            train_end=train_end,
+            interpolate_train=interpolate_train,
+        )
+    else:
+        wide = wide.ffill()
+    return wide.shift(lag_weeks)
 
 
 # Maps each FRED series to the regime features derived from it (VIX-derived risk features
@@ -231,10 +256,17 @@ def build_features(
 
     feature_frames.update(_dispersion_features(returns))
 
-    macro_wide = _macro_wide(macro_weekly, cfg.features.macro_lag_weeks)
+    macro_wide = _macro_wide(
+        macro_weekly,
+        cfg.features.macro_lag_weeks,
+        target_index=prices.index,
+        train_end=cfg.split.train_end,
+        interpolate_train=cfg.features.align_interpolate_train,
+    )
     model_series = cfg.macro.model_series
     _keep = set(model_series) if model_series is not None else None
     if "DGS10" in macro_wide.columns:
+        # Already aligned to prices.index; ffill covers any leading NaNs after lag.
         carry = macro_wide["DGS10"].reindex(prices.index).ffill()
         if _keep is not None and "DGS10" not in _keep:
             carry = carry * 0.0
