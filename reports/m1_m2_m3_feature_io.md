@@ -11,42 +11,103 @@
 
 ## Feature map (every name used by each model)
 
-Names only in the boxes. M1 = **14** base columns. M2 = **52** columns (all 36 base + M1 extras). M3 = **`p_success`** only.
+Boxes are **segmented by theme** so you can see immediately what a feature is about. Inside each box: **names only**.
+
+| Segment label | Means |
+| --- | --- |
+| **Momentum / Trend / Risk** | From the sleeve’s own prices (technical) |
+| **Cross-asset** | Market-wide / peer structure (not one sleeve alone) |
+| **External macro & regime** | FRED + VIX — outside the sleeve’s price |
+| **Carry** | Rates / credit levels from FRED |
+| **M1 context** | Outputs of the primary selector |
+| **Dynamic interactions** | M1 score × vol / regime / macro (how the call behaves in context) |
+| **Asset identity** | Which sleeve type (bond, equity, …) |
+
+M1 = **14** base columns · M2 = **52** · M3 = **`p_success`** only.
 
 ```mermaid
 flowchart TB
   RAW["Prices + FRED macro + VIX"] --> BASE
 
-  subgraph BASE["36 base features engineered weekly"]
-    direction TB
-    B_MOM["mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w"]
-    B_TREND["trend_signal<br/>z_trend_signal"]
-    B_VOL["vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
-    B_X["corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w"]
-    B_CARRY["carry_yield_level<br/>credit_carry_chg"]
-    B_MACRO["inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
+  subgraph BASE["36 base features — by segment"]
+    direction LR
+    subgraph B1["Momentum"]
+      BM["mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w"]
+    end
+    subgraph B2["Trend"]
+      BT["trend_signal<br/>z_trend_signal"]
+    end
+    subgraph B3["Risk — vol & drawdown"]
+      BV["vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+    end
+    subgraph B4["Cross-asset"]
+      BX["corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w"]
+    end
+    subgraph B5["Carry — external rates"]
+      BC["carry_yield_level<br/>credit_carry_chg"]
+    end
+    subgraph B6["External macro & regime"]
+      BMAC["inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
+    end
   end
 
   BASE --> M1
   BASE --> M2
 
-  subgraph M1["M1 uses these 14 features"]
-    direction TB
-    M1F["z_mom_12w<br/>z_mom_26w<br/>z_mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>z_trend_signal<br/>growth_trend<br/>risk_off<br/>inflation_up<br/>curve_inverted<br/>credit_stress<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+  subgraph M1["M1 — 14 features by score component"]
+    direction LR
+    subgraph M1M["Momentum 45%"]
+      M1MOM["z_mom_12w<br/>z_mom_26w<br/>z_mom_52w<br/>rank_mom_12w<br/>rel_mom_12w"]
+    end
+    subgraph M1T["Trend 25%"]
+      M1TR["z_trend_signal"]
+    end
+    subgraph M1MAC["Macro tilt 20% — external"]
+      M1MA["growth_trend<br/>risk_off<br/>inflation_up<br/>curve_inverted<br/>credit_stress"]
+    end
+    subgraph M1R["Risk penalty 10%"]
+      M1RI["z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+    end
   end
 
-  M1 --> M1OUT["M1 writes<br/>M1_signal<br/>M1_score<br/>M1_conviction<br/>momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty"]
+  M1 --> M1OUT
+
+  subgraph M1OUT["M1 writes — context for M2 / portfolio"]
+    M1W["M1_signal<br/>M1_score<br/>M1_conviction<br/>momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty"]
+  end
+
   M1OUT --> M2
 
-  subgraph M2["M2 uses these 52 features"]
+  subgraph M2["M2 — 52 features by segment"]
     direction TB
-    M2A["mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w<br/>trend_signal<br/>z_trend_signal<br/>vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w<br/>corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w<br/>carry_yield_level<br/>credit_carry_chg<br/>inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
-    M2B["momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty<br/>M1_signal<br/>M1_score<br/>m1_cs_rank<br/>m1_score_abs<br/>m1_x_vol<br/>m1_x_risk_off<br/>m1_x_macro<br/>asset_class_bond<br/>asset_class_credit<br/>asset_class_equity<br/>asset_class_gold<br/>asset_class_reit"]
+    subgraph M2P["Price / technical — sleeve-dynamic"]
+      direction LR
+      M2MOM["Momentum<br/>mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w"]
+      M2TR["Trend<br/>trend_signal<br/>z_trend_signal"]
+      M2RISK["Risk<br/>vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+    end
+    subgraph M2E["External factors — macro, VIX, carry"]
+      direction LR
+      M2MAC["External macro & regime<br/>inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
+      M2CAR["Carry<br/>carry_yield_level<br/>credit_carry_chg"]
+    end
+    subgraph M2X["Cross-asset — market-wide dynamic"]
+      M2XA["corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w"]
+    end
+    subgraph M2C["M1 context — primary-model outputs"]
+      M2CTX["momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty<br/>M1_signal<br/>M1_score"]
+    end
+    subgraph M2D["Dynamic interactions — score × context"]
+      M2DYN["m1_cs_rank<br/>m1_score_abs<br/>m1_x_vol<br/>m1_x_risk_off<br/>m1_x_macro"]
+    end
+    subgraph M2A["Asset identity"]
+      M2ID["asset_class_bond<br/>asset_class_credit<br/>asset_class_equity<br/>asset_class_gold<br/>asset_class_reit"]
+    end
   end
 
   M2 --> P["p_success"]
 
-  subgraph M3["M3 uses this 1 input"]
+  subgraph M3["M3 — sizing only"]
     M3F["p_success"]
   end
 
@@ -55,11 +116,11 @@ flowchart TB
   M1OUT --> W
 ```
 
-| Model | Count | What the box lists |
+| Model | Count | How to read the segments |
 | --- | ---: | --- |
-| **M1** | 14 | Only the base columns inside the M1 score rules |
-| **M2** | 52 | All 36 base + 4 M1 components + `M1_signal`/`M1_score` + 5 derived + 5 asset-class dummies |
-| **M3** | 1 | `p_success` only (no raw feature matrix) |
+| **M1** | 14 | Four score legs: Momentum · Trend · Macro (external) · Risk |
+| **M2** | 52 | Sleeve price tech · **External** macro/VIX/carry · **Cross-asset** · **M1 context** · **Dynamic interactions** · Asset identity |
+| **M3** | 1 | `p_success` only — no feature segments |
 
 ---
 
