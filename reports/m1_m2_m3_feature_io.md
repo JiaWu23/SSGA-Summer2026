@@ -9,19 +9,73 @@
 
 ---
 
+## Feature map (every name used by each model)
+
+Names only in the boxes. M1 = **14** base columns. M2 = **52** columns (all 36 base + M1 extras). M3 = **`p_success`** only.
+
+```mermaid
+flowchart TB
+  RAW["Prices + FRED macro + VIX"] --> BASE
+
+  subgraph BASE["36 base features engineered weekly"]
+    direction TB
+    B_MOM["mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w"]
+    B_TREND["trend_signal<br/>z_trend_signal"]
+    B_VOL["vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+    B_X["corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w"]
+    B_CARRY["carry_yield_level<br/>credit_carry_chg"]
+    B_MACRO["inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
+  end
+
+  BASE --> M1
+  BASE --> M2
+
+  subgraph M1["M1 uses these 14 features"]
+    direction TB
+    M1F["z_mom_12w<br/>z_mom_26w<br/>z_mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>z_trend_signal<br/>growth_trend<br/>risk_off<br/>inflation_up<br/>curve_inverted<br/>credit_stress<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w"]
+  end
+
+  M1 --> M1OUT["M1 writes<br/>M1_signal<br/>M1_score<br/>M1_conviction<br/>momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty"]
+  M1OUT --> M2
+
+  subgraph M2["M2 uses these 52 features"]
+    direction TB
+    M2A["mom_4w<br/>mom_12w<br/>mom_26w<br/>mom_52w<br/>rank_mom_12w<br/>rel_mom_12w<br/>mom_vol_interaction<br/>z_mom_12w<br/>z_mom_26w<br/>z_mom_52w<br/>trend_signal<br/>z_trend_signal<br/>vol_4w<br/>vol_12w<br/>vol_26w<br/>z_vol_12w<br/>drawdown_26w<br/>z_drawdown_26w<br/>corr_to_spy_26w<br/>cross_asset_dispersion_4w<br/>cross_asset_dispersion_12w<br/>average_pairwise_correlation_26w<br/>carry_yield_level<br/>credit_carry_chg<br/>inflation_trend<br/>inflation_up<br/>growth_trend<br/>growth_down<br/>yield_curve<br/>curve_inverted<br/>credit_stress<br/>policy_rate_change<br/>unemployment_change<br/>vix_level<br/>vix_change_4w<br/>risk_off"]
+    M2B["momentum_score<br/>trend_score<br/>macro_score<br/>risk_penalty<br/>M1_signal<br/>M1_score<br/>m1_cs_rank<br/>m1_score_abs<br/>m1_x_vol<br/>m1_x_risk_off<br/>m1_x_macro<br/>asset_class_bond<br/>asset_class_credit<br/>asset_class_equity<br/>asset_class_gold<br/>asset_class_reit"]
+  end
+
+  M2 --> P["p_success"]
+
+  subgraph M3["M3 uses this 1 input"]
+    M3F["p_success"]
+  end
+
+  P --> M3
+  M3 --> W["M3_size → portfolio weight"]
+  M1OUT --> W
+```
+
+| Model | Count | What the box lists |
+| --- | ---: | --- |
+| **M1** | 14 | Only the base columns inside the M1 score rules |
+| **M2** | 52 | All 36 base + 4 M1 components + `M1_signal`/`M1_score` + 5 derived + 5 asset-class dummies |
+| **M3** | 1 | `p_success` only (no raw feature matrix) |
+
+---
+
 ## What this file answers
 
 | Question | Short answer |
 | --- | --- |
 | **Which macro variables, and how do they hit the models?** | Seven FRED series + VIX → ~12 regime/carry features → M1 uses **5** of them in class tilts; M2 uses **all** of them; M3 uses **none** (only `p_success`). |
 | **Why was each feature chosen?** | See [Feature rationale](#feature-rationale-why-each-exists) — economic job + who uses it. |
-| **What is not used?** | M1 ignores **23/36** base columns. M3 ignores all features. Labels are never features. Nothing in the 36 is dropped from M2 today. |
+| **What is not used?** | M1 ignores **22/36** base columns. M3 ignores all features. Labels are never features. Nothing in the 36 is dropped from M2 today. |
 | **What could we add later?** | See [Future discoveries](#future-discoveries). |
 
 ```text
 Prices + FRED macro + VIX
         →  36 weekly features
-        →  M1 picks top-3 sleeves (uses 13 features)
+        →  M1 picks top-3 sleeves (uses 14 features)
         →  M2 P(trade works) (uses all 36 + M1 extras = 52)
         →  M3 bet size (uses only p_success)
         →  Portfolio caps
@@ -80,7 +134,7 @@ gold:    +inflation_up  +risk_off  −growth
 | Stage | Inputs | Output | Knob |
 | --- | --- | --- | --- |
 | Features | Prices, FRED, VIX | 36 columns | windows, macro lag |
-| **M1** | **13** of 36 | `M1_signal`, `M1_score`, 4 components | 45/25/20/10; top-3 |
+| **M1** | **14** of 36 | `M1_signal`, `M1_score`, 4 components | 45/25/20/10; top-3 |
 | Labels | Signal + future return | `meta_label` | 4-week horizon |
 | **M2** | 36 + M1 extras = **52** | `p_success` | calibrated logistic |
 | **M3** | `p_success` only | `M3_size` | linear: max(0, 2p−1) |
@@ -152,7 +206,7 @@ Plain “why chosen” + who uses it. **M1** = selection score. **M2** = success
 
 ## What is not used (or barely used)
 
-### Unused by M1 (23 of 36) — still used by M2
+### Unused by M1 (22 of 36) — still used by M2
 
 `mom_4w`, `mom_12w`, `mom_26w`, `mom_52w`, `mom_vol_interaction`, `trend_signal`, `vol_4w`, `vol_12w`, `vol_26w`, `corr_to_spy_26w`, `cross_asset_dispersion_4w`, `cross_asset_dispersion_12w`, `average_pairwise_correlation_26w`, `carry_yield_level`, `credit_carry_chg`, `inflation_trend`, `growth_down`, `yield_curve`, `policy_rate_change`, `unemployment_change`, `vix_level`, `vix_change_4w`
 
@@ -200,7 +254,7 @@ All 36 features and all M1 extras. M3 only sees `p_success`.
 
 | Idea | Why |
 | --- | --- |
-| Ablate M1’s 13 raw inputs out of M2 | Test if reuse helps or only duplicates `macro_score` / `momentum_score` |
+| Ablate M1’s 14 raw inputs out of M2 | Test if reuse helps or only duplicates `macro_score` / `momentum_score` |
 | Put Fed/UNRATE/DGS10 into optional M1 tilts | Today they only help M2 |
 | L1 / feature selection on M2 | 52 columns vs sparse trade weeks |
 | Optional M3 dampener from vol / `risk_off` | Size reacts to stress, not only `p_success` |
@@ -215,7 +269,7 @@ All 36 features and all M1 extras. M3 only sees `p_success`.
 | Stage | Reads | Writes |
 | --- | --- | --- |
 | Features | Prices, FRED, VIX | 36 features |
-| M1 | 13 features | signal, score, 4 components |
+| M1 | 14 features | signal, score, 4 components |
 | Labels | signal + future prices | `meta_label`, … |
 | M2 | 52 features + `meta_label` | `p_success` |
 | M3 | `p_success` | `M3_size` |
