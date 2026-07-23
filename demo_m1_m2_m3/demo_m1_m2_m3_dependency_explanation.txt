@@ -1,0 +1,99 @@
+Demo explanation: showing that M2 and M3 only act on M1-generated candidates
+
+1. What this demo is trying to show
+This demo is designed to answer a simple question: do M2 and M3 independently create trading positions, or do they only modify trades that M1 already chose?
+
+The answer is that M2 and M3 do not independently create positions. They are downstream layers in the pipeline.
+
+2. The logic behind the demo
+The demo mirrors the structure of the project code:
+
+- M1 generates the initial signal.
+  - M1 decides whether a trade should be long, short, or flat.
+  - In the code, this is represented by M1_signal.
+
+- M2 evaluates that candidate.
+  - M2 does not create a new direction.
+  - It only assigns a probability of success, p_success, to rows where M1 already produced a non-zero signal.
+
+- M3 sizes that existing candidate.
+  - M3 converts the M2 probability into a bet size or size multiplier.
+  - It does not create a new buy/sell decision on its own.
+
+- The final position is built from M1 and M3.
+  - In the backtest logic, the final weight is effectively:
+    weight = M1_signal * M3_size * budget
+  - This means that if M1_signal is zero, the final position is zero, regardless of what M2 or M3 say.
+
+3. Why this matters
+This is important because it shows that the framework is not an ensemble of three independent trading models.
+Instead, it is a staged pipeline:
+
+- Stage 1: M1 creates the trade candidate.
+- Stage 2: M2 evaluates whether that candidate is likely to be successful.
+- Stage 3: M3 sizes the candidate.
+
+4. What the demo shows
+The demo uses a small table of example rows with:
+
+- M1_signal
+- p_success
+- M3_size
+- weight
+
+The demo output table looks like this:
+
+| date       | ticker | M1_signal | p_success | M3_size | weight | eligible_for_m2 | position_created |
+|------------|--------|-----------|-----------|---------|--------|-----------------|------------------|
+| 2024-01-02 | A      | 1         | 0.82      | 0.70    | 0.10   | True            | True             |
+| 2024-01-02 | B      | -1        | 0.71      | 0.55    | -0.08  | True            | True             |
+| 2024-01-02 | C      | 0         | 0.95      | 0.80    | 0.00   | False           | False            |
+| 2024-01-09 | A      | 0         | 0.91      | 0.85    | 0.00   | False           | False            |
+| 2024-01-09 | B      | 1         | 0.66      | 0.40    | 0.06   | True            | True             |
+
+This table shows the key point clearly by comparing two cases:
+
+Case 1: M1_signal != 0
+- Example: the row with M1_signal = 1, p_success = 0.82, and M3_size = 0.70.
+- Result: the final weight is 0.10, so a position is created.
+- Interpretation: when M1 already proposes a trade, M2 and M3 can evaluate and size it.
+
+Case 2: M1_signal = 0
+- Example: the row with M1_signal = 0, p_success = 0.95, and M3_size = 0.80.
+- Result: the final weight is 0.00, so no position is created.
+- Interpretation: even though M2 and M3 have positive values, they cannot create an active position because M1 is flat.
+
+These two cases together show the full logic:
+- when M1 is active, M2 and M3 can act on the trade;
+- when M1 is flat, M2 and M3 cannot create a position.
+
+5. How to interpret the result
+The main interpretation is:
+
+- M2 and M3 only act on existing M1-generated candidates.
+- They do not independently create positions.
+- The final portfolio exposure is gated by M1.
+
+In other words, M2 and M3 are filtering and sizing layers, not separate signal generators.
+
+A concise interpretation is:
+
+"M1 creates the candidate trade. M2 evaluates it, and M3 sizes it. If M1 is flat, the position remains flat, regardless of the M2 probability or the M3 size multiplier."
+
+6. Supporting logic in the repository
+You can also see this logic directly in the repository files:
+
+- src/labels.py
+  - The meta-label is created only when M1_signal is non-zero.
+
+- src/model_m2.py
+  - M2 predictions are made only for rows where M1_signal is non-zero.
+
+- src/model_m3.py
+  - M3 converts the M2 probability into a size multiplier.
+
+- src/backtest.py
+  - The final weight uses M1_signal times M3_size.
+
+7. One-sentence takeaway
+M2 and M3 are downstream decision layers that evaluate and size M1 trades, but they cannot create a position unless M1 already created one.

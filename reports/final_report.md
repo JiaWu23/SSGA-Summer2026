@@ -4,6 +4,12 @@ This run executes the pipeline **twice**: once with M1 **long-only** (no short s
 
 **Research use only — not investment advice.**
 
+### Current headline (long-only, same checked-in run)
+
+- Full sample (train + test): M1-only 5.91% annualized return / 0.617 Sharpe / -20.17% max drawdown; M1+M2+M3 Binary 5.66% / 0.618 / -18.21%; M1+M2+M3 ECDF 1.81% / 0.332 / -13.11%.
+- Test period (2021+): M1-only 8.92% / 0.875 / -20.17%; M1+M2+M3 Binary 8.67% / 0.951 / -14.45%; M1+M2+M3 ECDF 4.58% / 0.914 / -7.51%.
+- Walk-forward: ECDF edge is mixed (mean -0.190, positive in 1/6 folds), so the strongest defensible conclusion is risk-control improvement on the current production window rather than a universally stable OOS gain.
+
 ## Sample Period
 
 | Item | Value |
