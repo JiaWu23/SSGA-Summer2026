@@ -71,6 +71,8 @@ features:
   trend_windows: [10, 40]
   macro_lag_weeks: 4
   winsorize_pct: 0.01
+  # Train: interpolate sparse macro onto weekly Fridays; test/eval: forward-fill only.
+  align_interpolate_train: true
 
 labels:
   horizon_weeks: 4

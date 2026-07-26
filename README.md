@@ -12,21 +12,16 @@ Start here if you are reviewing this branch:
 - [`DATA_SOURCES_AND_ETL.md`](DATA_SOURCES_AND_ETL.md) — data provenance, ETL, validation, cache behavior, and reviewer caveats
 - [`NEXT_STEPS.md`](NEXT_STEPS.md) — review notes, remaining risks, and recommended research roadmap
 
-Current headline result (**full sample: train + test, unless noted**): the **long-only M1** sleeve is now close to equal-weight return while keeping better Sharpe and much lower drawdown.
+Current headline result (same checked-in long-only run): full sample (train + test) and the 2021+ test window are reported separately below.
 
-| Strategy | Ann. Return | Sharpe | Max DD |
-| --- | ---: | ---: | ---: |
-| Equal Weight 1/7 | 7.36% | 0.57 | -39.44% |
-| **M1 Only, long-only** | **7.32%** | **0.70** | **-21.00%** |
-| M1 + M2 + M3 ECDF | 6.54% | 0.96 | -16.26% |
+| Window | M1 Only | M1 + M2 + M3 Binary | M1 + M2 + M3 ECDF |
+| --- | --- | --- | --- |
+| Full sample | 5.91% ann. return / 0.617 Sharpe / -20.17% max drawdown | 5.66% / 0.618 / -18.21% | 1.81% / 0.332 / -13.11% |
+| Test 2021+ | 8.92% / 0.875 / -20.17% | 8.67% / 0.951 / -14.45% | 4.58% / 0.914 / -7.51% |
 
-**vs `main` (test 2021+):** M1-only unchanged (Sharpe 0.79); ECDF Sharpe **0.85 → 0.96** (+0.11); M2 AUC **0.57 → 0.59**. See [BRANCH_UPDATE_REPORT.md](BRANCH_UPDATE_REPORT.md).
+The strongest defensible conclusion is that M1 is the primary return-oriented model, while M3 binary and ECDF improve Sharpe and drawdown on the current production window. The walk-forward evidence for ECDF is mixed, with a mean edge of -0.190 and positive results in only 1 of 6 folds.
 
-The practical interpretation is: **M1 selects opportunities; M2/M3 shape exposure and drawdown.** M1-only is the return-oriented sleeve; M1+M2+M3 ECDF is the strongest risk-adjusted variant.
-
-Reviewer caveat: equal-weight is shown with **0 bps** transaction costs, while strategy variants pay the configured **5 bps** turnover cost. M1 also runs with lower average gross exposure (~81%) than equal-weight, so the headline comparison is best read as risk-efficiency rather than pure excess-return proof.
-
-The generated `reports/final_report.md` now also includes portfolio-level test-period tables. On the 2021+ long-only test window, M1-only reports 8.40% / 0.79 Sharpe vs equal-weight 7.34% / 0.69; M1+M2+M3 ECDF reports 7.02% / **0.96** Sharpe (vs **0.85** on `main`).
+The practical interpretation is: **M1 selects candidate trades; M2 estimates P(success) for those trades; M3 sizes only those candidate trades.** M1 is flat when no long/short candidate exists, so neither M2 nor M3 can create a position independently.
 
 ## Asset Universe
 

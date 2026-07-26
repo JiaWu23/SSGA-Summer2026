@@ -16,35 +16,45 @@ This project is a **research backtest** of a weekly multi-asset allocation strat
 
 ---
 
+
+
 ## Pipeline architecture
+
+
 
 ### Joubert framework (M1 → M2 → M3)
 
 A three-layer design from Marcos López de Prado’s meta-labeling literature (often cited via Joubert 2022). Think of it as: **pick trades → score trade quality → decide how much capital to risk**.
 
-| Layer | Plain English | Code output |
-| --- | --- | --- |
-| **M1** | “Should we be long, short, or flat in this asset this week?” | `M1_signal` (−1, 0, +1), `M1_score` |
-| **M2** | “If M1 wants a trade, how likely is it to be profitable?” | `p_success` (probability 0–1) |
-| **M3** | “Given that probability, what fraction of the base bet should we take?” | `M3_size` (0–1) |
-| **Portfolio** | Risk limits: caps per asset, vol target, transaction costs | Final `weight` per asset-week |
+
+| Layer         | Plain English                                                           | Code output                         |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------- |
+| **M1**        | “Should we be long, short, or flat in this asset this week?”            | `M1_signal` (−1, 0, +1), `M1_score` |
+| **M2**        | “If M1 wants a trade, how likely is it to be profitable?”               | `p_success` (probability 0–1)       |
+| **M3**        | “Given that probability, what fraction of the base bet should we take?” | `M3_size` (0–1)                     |
+| **Portfolio** | Risk limits: caps per asset, vol target, transaction costs              | Final `weight` per asset-week       |
+
+
+
 
 ### M1 (side / opportunity model)
 
 Rule-based model that scores each **index sleeve** each week using factors (momentum, trend, macro, risk). It does **not** use machine learning in the default setup.
 
-- **`M1_signal`**: +1 = go long, −1 = go short, 0 = no trade.
-- **`M1_score`**: Continuous score before discretizing to a signal.
-- **`M1_conviction`**: Optional scaling of position size by how strong the M1 score is (currently **off** in production config).
+- `M1_signal`: +1 = go long, −1 = go short, 0 = no trade.
+- `M1_score`: Continuous score before discretizing to a signal.
+- `M1_conviction`: Optional scaling of position size by how strong the M1 score is (currently **off** in production config).
 - **Factor families**: Groups of features — momentum, trend, macro, risk — combined with configurable weights.
+
+
 
 ### M2 (meta-label model)
 
 A **classifier** (logistic regression) trained only on weeks where M1 actually proposed a trade (`M1_signal ≠ 0`).
 
-- **`meta_label`**: Training label — 1 if the M1 trade would have been profitable over the forward horizon (after costs), 0 otherwise.
-- **`p_success`**: M2’s predicted probability that the trade succeeds. This is the main M2 output used downstream.
-- **`predicted_meta_label`**: Diagnostic only — “would we approve at threshold T?” Not the primary production output.
+- `meta_label`: Training label — 1 if the M1 trade would have been profitable over the forward horizon (after costs), 0 otherwise.
+- `p_success`: M2’s predicted probability that the trade succeeds. This is the main M2 output used downstream.
+- `predicted_meta_label`: Diagnostic only — “would we approve at threshold T?” Not the primary production output.
 
 **Meta-labeling** means: the first model (M1) picks *direction*; the second model (M2) judges *whether that specific trade is worth taking*.
 
@@ -52,21 +62,27 @@ A **classifier** (logistic regression) trained only on weeks where M1 actually p
 
 Deterministic rule that converts `p_success` into a **bet fraction** `M3_size` ∈ [0, 1]. M3 is **not** another classifier.
 
-| M3 mode | Code name | Plain English |
-| --- | --- | --- |
-| **Binary** | `binary` | Full size if `p_success ≥ T`, else zero |
-| **Linear** | `linear` | Size = `max(0, 2 × p_success − 1)` — scales smoothly with confidence |
-| **ECDF** | `ecdf` | Size = percentile rank of `p_success` vs training distribution — relative sizing |
-| **Passthrough** | `passthrough` | Diagnostic: use raw `p_success` as size (research only) |
-| **Linear gated** | (research) | Linear size, but zero if `p_success` below a gate threshold |
+
+| M3 mode          | Code name     | Plain English                                                                    |
+| ---------------- | ------------- | -------------------------------------------------------------------------------- |
+| **Binary**       | `binary`      | Full size if `p_success ≥ T`, else zero                                          |
+| **Linear**       | `linear`      | Size = `max(0, 2 × p_success − 1)` — scales smoothly with confidence             |
+| **ECDF**         | `ecdf`        | Size = percentile rank of `p_success` vs training distribution — relative sizing |
+| **Passthrough**  | `passthrough` | Diagnostic: use raw `p_success` as size (research only)                          |
+| **Linear gated** | (research)    | Linear size, but zero if `p_success` below a gate threshold                      |
+
 
 **Allocation states** (on the panel):
 
-| State | Meaning |
-| --- | --- |
-| `no_signal` | M1 said flat — no candidate trade |
-| `m3_zero` | M1 wanted a trade, but M3 sized it to zero (rejected) |
-| `m3_active` | M1 wanted a trade and M3 assigned positive size |
+
+| State       | Meaning                                               |
+| ----------- | ----------------------------------------------------- |
+| `no_signal` | M1 said flat — no candidate trade                     |
+| `m3_zero`   | M1 wanted a trade, but M3 sized it to zero (rejected) |
+| `m3_active` | M1 wanted a trade and M3 assigned positive size       |
+
+
+
 
 ### Backtest
 
@@ -78,27 +94,33 @@ Instead of one train/test split, the model is re-trained on expanding windows an
 
 ### Train / test split
 
-| Term | Meaning |
-| --- | --- |
-| **In-sample / train** | Dates used to fit M2 and calibrate thresholds (default: through 2020-12-31) |
-| **Out-of-sample / test / OOS** | Dates held back for honest evaluation (default: 2021-01-01 onward) |
-| **Full sample** | Train + test combined — easier to look good; always check test-only tables too |
+
+| Term                           | Meaning                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| **In-sample / train**          | Dates used to fit M2 and calibrate thresholds (default: through 2020-12-31)    |
+| **Out-of-sample / test / OOS** | Dates held back for honest evaluation (default: 2021-01-01 onward)             |
+| **Full sample**                | Train + test combined — easier to look good; always check test-only tables too |
+
 
 ---
+
+
 
 ## Strategies and benchmarks (code names)
 
 These strings appear in backtest outputs, charts, and `metrics_table`.
 
-| Code / report name | Plain English |
-| --- | --- |
-| **`equal_weight_1_7`** / **Equal Weight 1/7** | Each week, split money **equally** across all 7 index sleeves (~14.3% each). Passive benchmark. |
-| **`sixty_forty`** / **60/40** | Classic benchmark blend across equity and bond sleeves (see `config/config.yaml` `benchmarks.sixty_forty`). |
-| **`m1_only`** / **M1 Only** | Follow M1 signals only; no M2/M3 sizing overlay (beyond portfolio vol target). |
-| **`m1_m2_m3_binary`** | M1 + M2 probability + binary M3 (all-or-nothing at threshold T). |
-| **`m1_m2_m3_linear`** | M1 + M2 + linear M3 sizing. |
-| **`m1_m2_m3_ecdf`** | M1 + M2 + ECDF M3 sizing — best risk-adjusted variant in current research. |
-| **`m1_m2_passthrough`** | Diagnostic: M3 size = raw `p_success` (not a production recommendation). |
+
+| Code / report name                        | Plain English                                                                                               |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `equal_weight_1_7` / **Equal Weight 1/7** | Each week, split money **equally** across all 7 index sleeves (~14.3% each). Passive benchmark.             |
+| `sixty_forty` / **60/40**                 | Classic benchmark blend across equity and bond sleeves (see `config/config.yaml` `benchmarks.sixty_forty`). |
+| `m1_only` / **M1 Only**                   | Follow M1 signals only; no M2/M3 sizing overlay (beyond portfolio vol target).                              |
+| `m1_m2_m3_binary`                         | M1 + M2 probability + binary M3 (all-or-nothing at threshold T).                                            |
+| `m1_m2_m3_linear`                         | M1 + M2 + linear M3 sizing.                                                                                 |
+| `m1_m2_m3_ecdf`                           | M1 + M2 + ECDF M3 sizing — best risk-adjusted variant in current research.                                  |
+| `m1_m2_passthrough`                       | Diagnostic: M3 size = raw `p_success` (not a production recommendation).                                    |
+
 
 **Long-only** vs **long/short**:
 
@@ -107,7 +129,11 @@ These strings appear in backtest outputs, charts, and `metrics_table`.
 
 ---
 
+
+
 ## Investments and instruments
+
+
 
 ### Index sleeve
 
@@ -145,7 +171,11 @@ Decisions and weight updates happen once per week (Friday close in this project)
 
 ---
 
+
+
 ## Portfolio and trading concepts
+
+
 
 ### Weight
 
@@ -153,11 +183,15 @@ Fraction of portfolio capital allocated to a sleeve. Sum of absolute weights = *
 
 ### Long / short / flat
 
-| Position | Meaning |
-| --- | --- |
-| **Long** | Own the asset — profit if price rises |
+
+| Position  | Meaning                                                                    |
+| --------- | -------------------------------------------------------------------------- |
+| **Long**  | Own the asset — profit if price rises                                      |
 | **Short** | Bet against the asset — profit if price falls (not used in long-only mode) |
-| **Flat** | No position (weight = 0) |
+| **Flat**  | No position (weight = 0)                                                   |
+
+
+
 
 ### Gross exposure
 
@@ -201,7 +235,11 @@ Broad market environment: e.g. crisis, low-vol bull market, rising rates. Perfor
 
 ---
 
+
+
 ## Performance metrics
+
+
 
 ### Return (annualized)
 
@@ -240,14 +278,18 @@ Strategy return minus benchmark return (e.g. vs equal-weight). Can be negative e
 `IR = mean(strategy − EW) × √52 / std(strategy − EW)`
 
 - **IR > 0**: strategy tends to beat EW consistently week-to-week  
-- **IR < 0**: strategy tends to lag EW even if absolute Sharpe looks fine  
+- **IR < 0**: strategy tends to lag EW even if absolute Sharpe looks fine
+
+
 
 ### Sharpe vs Information Ratio
 
-| Metric | Question |
-| --- | --- |
+
+| Metric     | Question                                          |
+| ---------- | ------------------------------------------------- |
 | **Sharpe** | Return per unit of **total** volatility (vs cash) |
-| **IR** | Consistency of **beating equal-weight** |
+| **IR**     | Consistency of **beating equal-weight**           |
+
 
 M1+M2+M3 ECDF often **raises Sharpe** but **lowers IR** because ECDF scales positions down. When all seven index sleeves rally, EW captures the full move; a selective, under-invested sleeve lags. See [reports/ir_attribution_analysis.md](reports/ir_attribution_analysis.md).
 
@@ -261,7 +303,11 @@ In classification: fraction of positive labels (e.g. % of M1 trades that were ac
 
 ---
 
+
+
 ## Machine learning and statistics
+
+
 
 ### AUC-ROC
 
@@ -269,7 +315,7 @@ In classification: fraction of positive labels (e.g. % of M1 trades that were ac
 
 - **0.50** = random coin flip  
 - **0.55–0.60** = weak but common in finance  
-- **0.70+** = moderate discrimination  
+- **0.70+** = moderate discrimination
 
 Does **not** mean “70% accurate.”
 
@@ -290,6 +336,8 @@ Of trades the model **approved**, what fraction were actually winners? “When w
 Of trades that **were** winners, what fraction did the model approve? “Did we catch the good ones?”
 
 - Recall ≈ **1.0** at T=0.55 means binary M3 approves **everyone** — no filtering.
+
+
 
 ### F1 score
 
@@ -314,6 +362,8 @@ Table of predicted vs actual labels (true positive, false positive, etc.).
 - **0.10** is a modest but meaningful IC in many quant contexts  
 - Reported per asset and for factor components
 
+
+
 ### Spearman correlation
 
 Correlation on **ranks** instead of raw values — robust to outliers and non-linear monotonic relationships.
@@ -324,6 +374,8 @@ A way to map a value to its **percentile** in a reference sample. Here: “where
 
 - Higher `p_success` relative to history → larger bet fraction  
 - No fixed threshold like 0.55 — sizing is **relative**
+
+
 
 ### Degeneracy (M3 threshold context)
 
@@ -347,53 +399,67 @@ Accidentally using **future** information in past decisions. Invalidates backtes
 
 ---
 
+
+
 ## Units and shorthand
 
-| Term | Meaning |
-| --- | --- |
-| **bps** | Basis points. 1 bp = 0.01%. 5 bps transaction cost ≈ 0.05% per unit of turnover. |
-| **ann.** | Annualized (scaled to per-year units). |
-| **TC** | Transaction cost. |
-| **OOS** | Out-of-sample. |
-| **EW** | Equal weight (benchmark). |
-| **DD** | Drawdown. |
-| **REIT** | Real Estate Investment Trust — property-linked equities (US_REIT). |
-| **FRED** | U.S. Federal Reserve economic data API. |
-| **VIX** | CBOE Volatility Index — market “fear” gauge. |
-| **W-FRI** | Weekly data aligned to Friday. |
+
+| Term      | Meaning                                                                          |
+| --------- | -------------------------------------------------------------------------------- |
+| **bps**   | Basis points. 1 bp = 0.01%. 5 bps transaction cost ≈ 0.05% per unit of turnover. |
+| **ann.**  | Annualized (scaled to per-year units).                                           |
+| **TC**    | Transaction cost.                                                                |
+| **OOS**   | Out-of-sample.                                                                   |
+| **EW**    | Equal weight (benchmark).                                                        |
+| **DD**    | Drawdown.                                                                        |
+| **REIT**  | Real Estate Investment Trust — property-linked equities (US_REIT).               |
+| **FRED**  | U.S. Federal Reserve economic data API.                                          |
+| **VIX**   | CBOE Volatility Index — market “fear” gauge.                                     |
+| **W-FRI** | Weekly data aligned to Friday.                                                   |
+
 
 ---
 
+
+
 ## Config parameters (quick reference)
 
-| Parameter | Plain English |
-| --- | --- |
+
+| Parameter                                     | Plain English                                                  |
+| --------------------------------------------- | -------------------------------------------------------------- |
 | `models.m3.threshold` / `models.m2.threshold` | Cutoff T for binary/gated sizing on `p_success` (default 0.55) |
-| `portfolio.transaction_cost_bps` | Trading cost assumption (default 5 bps) |
-| `portfolio.vol_target_ann` | Target annual volatility (default 12%) |
-| `labels.positive_threshold` | Min forward return to call a long trade “successful” |
-| `models.m1.top_k` | How many sleeves to select each week |
-| `split.train_end` / `split.test_start` | Where in-sample ends and OOS begins |
+| `portfolio.transaction_cost_bps`              | Trading cost assumption (default 5 bps)                        |
+| `portfolio.vol_target_ann`                    | Target annual volatility (default 12%)                         |
+| `labels.positive_threshold`                   | Min forward return to call a long trade “successful”           |
+| `models.m1.top_k`                             | How many sleeves to select each week                           |
+| `split.train_end` / `split.test_start`        | Where in-sample ends and OOS begins                            |
+
 
 Full table: [final_report.md — Configuration Parameters](reports/final_report.md#configuration-parameters-affecting-performance).
 
 ---
 
+
+
 ## Report and file glossary
 
-| File / section | What it contains |
-| --- | --- |
-| `final_report.md` | Main results: benchmarks, long-only vs long/short, M2 quality |
-| `m1_factor_analysis.md` | Which factor families predict returns (IC, correlations) |
-| `m2_diagnostics.md` | Classifier metrics, calibration, AUC guide |
-| `m3_allocation_analysis.md` | How often M3 rejects vs activates trades |
-| `m3_threshold_analysis.md` | Sweep of binary/linear thresholds vs Sharpe |
-| `evaluation_analysis.md` | Walk-forward folds, transaction-cost stress tests |
-| `walk_forward_analysis.md` | Is ECDF edge stable across time windows? |
-| `market_regime_analysis.md` | Performance conditioned on volatility/macro regimes |
-| `BRANCH_UPDATE_REPORT.md` | Executive summary vs `main` branch |
+
+| File / section              | What it contains                                              |
+| --------------------------- | ------------------------------------------------------------- |
+| `final_report.md`           | Main results: benchmarks, long-only vs long/short, M2 quality |
+| `m1_factor_analysis.md`     | Which factor families predict returns (IC, correlations)      |
+| `m2_diagnostics.md`         | Classifier metrics, calibration, AUC guide                    |
+| `m3_allocation_analysis.md` | How often M3 rejects vs activates trades                      |
+| `m3_threshold_analysis.md`  | Sweep of binary/linear thresholds vs Sharpe                   |
+| `evaluation_analysis.md`    | Walk-forward folds, transaction-cost stress tests             |
+| `walk_forward_analysis.md`  | Is ECDF edge stable across time windows?                      |
+| `market_regime_analysis.md` | Performance conditioned on volatility/macro regimes           |
+| `BRANCH_UPDATE_REPORT.md`   | Executive summary vs `main` branch                            |
+
 
 ---
+
+
 
 ## Mental model (one paragraph)
 
