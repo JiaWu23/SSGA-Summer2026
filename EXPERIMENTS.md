@@ -58,6 +58,41 @@ not in-sample. Default config is unchanged; every experiment is opt-in. Scripts:
 - **Result:** corr(momentum, trend) = **0.78**; macro is nearly orthogonal to both (≈ 0.09).
   So they are correlated — but not redundant (Experiment 5 shows dropping either one hurts).
 
+## 7 · Pure single-factor sweep (isolating momentum / trend / macro / risk)
+
+- **Question:** Which single factor performs best when isolated (100% weight on
+  one factor, 0% on the other three)? Hypothesis stated before viewing results:
+  risk would perform best, based on the pattern observed in Experiment 5 (higher
+  risk-penalty weight tracked with higher walk-forward Sharpe); momentum and
+  trend were expected to place in the middle (they carry the most weight in the
+  baseline config); macro was expected to be weakest, consistent with
+  `macro_heavy` underperforming in Experiment 5.
+- **Setup:** 4 pure single-factor configs — `momentum_100` (1/0/0/0),
+  `trend_100` (0/1/0/0), `macro_100` (0/0/1/0), `risk_100` (0/0/0/1) — same
+  walk-forward methodology as Experiment 5.
+
+| Factor (100% weight) | Walk-fwd Sharpe | Folds positive | Ann. return |
+| --- | ---: | ---: | ---: |
+| **risk_100** | **0.922** | 5 / 6 | 5.70% |
+| trend_100 | 0.481 | 5 / 6 | 5.29% |
+| momentum_100 | 0.446 | 4 / 6 | 5.15% |
+| macro_100 | 0.237 | 4 / 6 | 2.35% |
+
+- **Result:** Hypothesis largely confirmed. `risk_100` is the strongest single
+  factor (0.922), exceeding even the mixed `risk_heavy` config from Experiment
+  5 (0.811); `macro_100` is the weakest (0.237), consistent with `macro_heavy`
+  underperforming earlier. One deviation from the hypothesis: momentum
+  (0.446) placed slightly below trend (0.481) rather than above it — in this
+  7-asset universe and sample period, the trend signal alone edges out
+  momentum alone.
+- **Caveat — read before citing this result:** `risk_100`'s high Sharpe comes
+  primarily from **low volatility, not high return** — its annualized return
+  (5.70%) is the second-lowest of the four. This should not be read as "the
+  risk factor alone picks the highest-returning assets"; it picks the
+  *steadiest* ones. This nuance matters if presenting this result as evidence
+  for reweighting M1.
+
+
 ---
 
 **Summary:** 6 experiments — 1 reproduction, 3 macro sweeps (one discarded via a methodology

@@ -43,6 +43,10 @@ VARIANTS: dict[str, tuple] = {
     "macro_heavy":       (0.35, 0.20, 0.35, 0.10),   # push macro to see if it can carry weight
     "risk_heavy":        (0.40, 0.22, 0.18, 0.20),   # more downside penalty
     "momentum_pure":     (0.85, 0.00, 0.00, 0.15),   # momentum + risk only (leanest technical)
+    "momentum_100":      (1.00, 0.00, 0.00, 0.00),   # pure momentum
+    "trend_100":         (0.00, 1.00, 0.00, 0.00),   # pure trend
+    "macro_100":         (0.00, 0.00, 1.00, 0.00),   # pure macro
+    "risk_100":          (0.00, 0.00, 0.00, 1.00),   # pure risk
 }
 
 

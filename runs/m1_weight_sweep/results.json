@@ -1,0 +1,98 @@
+[
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.7085488481184482,
+    "m1_wf_ann_return": 0.07382067215652117,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.18983870073438927,
+    "ir_edge_vs_ew_mean": -0.6255021333454347,
+    "m2_auc_mean": 0.4864465815765497,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "baseline",
+    "weights": "0.45/0.25/0.2/0.1"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.5000707141823022,
+    "m1_wf_ann_return": 0.05372640346752897,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.0833725518790747,
+    "ir_edge_vs_ew_mean": -0.6875540358327726,
+    "m2_auc_mean": 0.4946445410256571,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "momentum_only",
+    "weights": "0.7/0.0/0.2/0.1"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.5208725486737338,
+    "m1_wf_ann_return": 0.05798375219042315,
+    "m1_folds_pos": 0.8333333333333334,
+    "ecdf_edge_vs_m1_mean": -0.13481536722482387,
+    "ir_edge_vs_ew_mean": -0.6244951127741051,
+    "m2_auc_mean": 0.5037281189913616,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "trend_only",
+    "weights": "0.0/0.7/0.2/0.1"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.6724937496959379,
+    "m1_wf_ann_return": 0.07069002148978738,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.21482696251363934,
+    "ir_edge_vs_ew_mean": -0.6652798858319329,
+    "m2_auc_mean": 0.49764867351086095,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "technical_5050",
+    "weights": "0.35/0.35/0.2/0.1"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.6897189371806624,
+    "m1_wf_ann_return": 0.07079605204671695,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.19538311778640535,
+    "ir_edge_vs_ew_mean": -0.5414804201027171,
+    "m2_auc_mean": 0.5058269620527569,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "no_macro",
+    "weights": "0.56/0.31/0.0/0.13"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.6380847237771726,
+    "m1_wf_ann_return": 0.06550320720855486,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.0383829462988134,
+    "ir_edge_vs_ew_mean": -0.576875381947697,
+    "m2_auc_mean": 0.5116394494278181,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "macro_heavy",
+    "weights": "0.35/0.2/0.35/0.1"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.8114731681257785,
+    "m1_wf_ann_return": 0.0785041412576634,
+    "m1_folds_pos": 1.0,
+    "ecdf_edge_vs_m1_mean": -0.221501760948805,
+    "ir_edge_vs_ew_mean": -0.5600273812245159,
+    "m2_auc_mean": 0.49317039776056554,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "risk_heavy",
+    "weights": "0.4/0.22/0.18/0.2"
+  },
+  {
+    "n_folds": 6,
+    "m1_only_wf_sharpe": 0.6419938151478383,
+    "m1_wf_ann_return": 0.06568579588204167,
+    "m1_folds_pos": 0.6666666666666666,
+    "ecdf_edge_vs_m1_mean": -0.05469431389595203,
+    "ir_edge_vs_ew_mean": -0.45594997519235586,
+    "m2_auc_mean": 0.48448591453814455,
+    "ew_wf_sharpe": 0.7084256107487401,
+    "variant": "momentum_pure",
+    "weights": "0.85/0.0/0.0/0.15"
+  }
+]
